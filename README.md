@@ -29,10 +29,7 @@ The reference setup is **git + Prisma + PostgreSQL**.
 
 ## Install
 
-> branchly isn't on npm yet. To try it today, build and install it from source —
-> see [Running from source](#running-from-source-pre-release) below.
-
-Once published, installation will be:
+Install branchly and the reference plugins as dev dependencies:
 
 ```sh
 npm install --save-dev branchly \
@@ -41,6 +38,8 @@ npm install --save-dev branchly \
   @branchly/datasource-postgres \
   @branchly/resolver-env-file
 ```
+
+(Use the equivalent `pnpm add -D` or `yarn add -D` if that's your package manager.)
 
 ## Quick start
 
@@ -85,7 +84,7 @@ npx branchly status
 | `branchly status`      | Show the current branch → database mapping and whether it's provisioned.                                      |
 | `branchly on-checkout` | Internal hook entry point — runs automatically on `git checkout`.                                             |
 
-Add `--quiet` to any command to silence the friendly output (errors still show).
+Add `--quiet` to any command to silence the output (errors still show).
 
 ## Configuration
 
@@ -125,10 +124,10 @@ its migrations. branchly asks the datasource whether a database for that key alr
 A small `.branchly/manifest.json` (gitignored) records which databases branchly created so it
 can manage them safely.
 
-## Running from source (pre-release)
+## Building from source
 
-branchly is a pnpm + TypeScript monorepo. To test it in a local project before it's published,
-build it and install the packed tarballs.
+branchly is a pnpm + TypeScript monorepo. To work on it — or to try unreleased changes in a
+real project — build the packages and install the packed tarballs.
 
 ```sh
 # 1. Build the packages
@@ -144,7 +143,7 @@ for pkg in core vcs-git migrator-prisma datasource-postgres resolver-env-file; d
 done
 ```
 
-Then, in **your test project**, install the five tarballs.
+Then, in **your project**, install the five tarballs.
 
 **npm / pnpm:**
 
@@ -163,23 +162,29 @@ yarn add -D \
   /tmp/branchly-packs/branchly-resolver-env-file-0.0.0.tgz
 ```
 
-Now run the CLI from the project. With npm/pnpm use `npx branchly …`; with Yarn Berry use
+Run the CLI from the project — with npm/pnpm use `npx branchly …`; with Yarn Berry use
 `yarn branchly …`:
 
 ```sh
 npx branchly init      # or: yarn branchly init
 ```
 
-> Re-packing later? The version stays `0.0.0`, so package managers may serve a cached copy.
-> With Yarn Berry run `yarn cache clean` first; with npm, reinstall the tarballs.
+> Re-packing from a local build? The version stays the same, so package managers may serve a
+> cached copy. With Yarn Berry run `yarn cache clean` first; with npm, reinstall the tarballs.
 
 ## Learn more
 
 - [`IMPLEMENTATION_GUIDE.md`](./IMPLEMENTATION_GUIDE.md) — the full architecture specification.
 - [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) — the build roadmap and current progress.
 
-## Project status
+## Supported tools & databases
 
-Early days. The kernel, the git + Prisma + Postgres + env-file reference plugins, and the
-`init` / `sync` / `status` / `on-checkout` commands work today. Snapshot caching, `prune`/`gc`,
-and more adapters (SQLite, Drizzle, MySQL, …) are on the roadmap.
+branchly works through plugins arranged along four axes:
+
+- **Version control:** Git
+- **Migrations & seeding:** Prisma
+- **Databases:** PostgreSQL (with `CREATE DATABASE … TEMPLATE` for instant per-branch clones)
+- **Connection delivery:** `.env` file
+
+Each axis is a small, self-contained package, so more ORMs and databases — such as Drizzle,
+SQLite, or MySQL — can be added as plugins without touching the core.

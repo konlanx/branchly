@@ -1,15 +1,27 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { renderConfig } from '../init/config-template';
 import { detectStack } from '../init/detect';
 import { ensureIgnored } from '../init/gitignore';
-import { installPostCheckoutHook } from '../init/hook';
+import { type HookResult, installPostCheckoutHook } from '../init/hook';
 import { MANIFEST_DIR } from '../manifest';
 import type { Reporter } from '../runtime/reporter';
 
 const ADMIN_ENV = 'BRANCHLY_DATABASE_URL';
 const APP_ENV = 'DATABASE_URL';
+
+const describeHook = (cwd: string, hook: HookResult): string => {
+  const where = relative(cwd, hook.path);
+  const doppler = hook.doppler ? ' (wrapped with `doppler run`)' : '';
+  if (hook.status === 'present') {
+    return `already wired up in ${where} 🪝`;
+  }
+  if (hook.status === 'chained') {
+    return `added to your existing ${where}${doppler} 🪝`;
+  }
+  return `installed at ${where}${doppler} 🪝`;
+};
 
 export interface InitOptions {
   readonly cwd: string;
@@ -44,13 +56,11 @@ export const runInit = async (options: InitOptions): Promise<void> => {
   const detected = await detectStack(cwd);
   const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, adminEnv: ADMIN_ENV, appEnv: APP_ENV }));
   await updateGitignore(cwd);
-  const installedHook = await installPostCheckoutHook(cwd);
+  const hook = await installPostCheckoutHook(cwd);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
   reporter.step(`detected:  ${detected.migrator} + ${detected.datasource} + ${detected.resolver}`);
   reporter.step(`gitignore: ${MANIFEST_DIR}/ and .env are covered`);
-  reporter.step(
-    `git hook:  ${installedHook ? 'post-checkout is wired up 🪝' : 'add `npx branchly on-checkout "$@"` to your hook'}`,
-  );
+  reporter.step(`git hook:  ${describeHook(cwd, hook)}`);
   reporter.step(`next:      set ${ADMIN_ENV} to your admin Postgres connection (in .env, Doppler, etc.)`);
   reporter.outro('branchly is set up — happy branching! 🎉');
 };
