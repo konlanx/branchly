@@ -1,7 +1,7 @@
 {
-  "name": "@branchly/datasource-postgres",
+  "name": "@branchly/adapter-test-kit",
   "version": "0.0.0",
-  "description": "Reference Postgres datasource adapter for branchly.",
+  "description": "Conformance test suites and fakes for branchly adapters.",
   "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,13 +17,12 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "pg": "^8.13.1"
+  "peerDependencies": {
+    "vitest": ">=4"
   },
   "devDependencies": {
-    "@branchly/adapter-test-kit": "workspace:*",
-    "@types/pg": "^8.11.10",
-    "branchly": "workspace:*"
+    "branchly": "workspace:*",
+    "vitest": "4.1.4"
   },
   "publishConfig": {
     "access": "public",

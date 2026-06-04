@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@branchly/adapter-test-kit": "workspace:*",
     "branchly": "workspace:*"
   },
   "publishConfig": {

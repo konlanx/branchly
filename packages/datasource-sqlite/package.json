@@ -1,7 +1,7 @@
 {
-  "name": "@branchly/datasource-postgres",
+  "name": "@branchly/datasource-sqlite",
   "version": "0.0.0",
-  "description": "Reference Postgres datasource adapter for branchly.",
+  "description": "Reference SQLite datasource adapter for branchly (file-per-branch).",
   "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,12 +17,8 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "pg": "^8.13.1"
-  },
   "devDependencies": {
     "@branchly/adapter-test-kit": "workspace:*",
-    "@types/pg": "^8.11.10",
     "branchly": "workspace:*"
   },
   "publishConfig": {
