@@ -45,7 +45,7 @@ export const createPostgresDatasource = (options: PostgresDatasourceOptions): Da
   return {
     id: 'postgres',
     apiVersion: 1,
-    capabilities: { instantClone: true, snapshot: false, isolatedPerBranch: true },
+    capabilities: { instantClone: true, snapshot: true, isolatedPerBranch: true },
     resolve: (key) => {
       const url = new URL(options.admin);
       url.pathname = `/${nameOf(key)}`;

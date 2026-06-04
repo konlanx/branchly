@@ -21,8 +21,6 @@ export interface DatasourceAdapter {
   create(key: BranchKey): Promise<void>;
   clone(from: BranchKey, to: BranchKey): Promise<void>;
   destroy(key: BranchKey): Promise<void>;
-
-  snapshot?(key: BranchKey): Promise<void>;
 }
 
 export interface MigratorAdapter {

@@ -89,6 +89,31 @@ const writeFixtureFiles = async (fixture: string, admin: string): Promise<void> 
   await writeFile(join(fixture, '.gitignore'), 'node_modules\n.env\n.branchly\n', 'utf8');
 };
 
+const databaseExists = async (admin: string, datname: string): Promise<boolean> => {
+  const row = await queryRow(admin, `SELECT 1 AS present FROM pg_database WHERE datname = '${datname}'`);
+  return row !== null;
+};
+
+const dropDatabase = async (admin: string, datname: string): Promise<void> => {
+  const client = new pg.Client({ connectionString: admin });
+  await client.connect();
+  try {
+    await client.query(`DROP DATABASE IF EXISTS "${datname}"`);
+  } finally {
+    await client.end();
+  }
+};
+
+const mainFingerprint = async (fixture: string): Promise<string> => {
+  const content = await readFile(join(fixture, '.branchly', 'manifest.json'), 'utf8');
+  const manifest = JSON.parse(content) as { entries: { slug: string; fingerprint: string }[] };
+  const entry = manifest.entries.find((item) => item.slug === 'main');
+  if (entry === undefined) {
+    throw new Error('main entry missing from the manifest');
+  }
+  return entry.fingerprint;
+};
+
 const dropTestDatabases = async (admin: string): Promise<void> => {
   const client = new pg.Client({ connectionString: admin });
   await client.connect();
@@ -121,7 +146,7 @@ suite('branchly end-to-end · prisma + postgres + git', () => {
       .map((name) => join(packs.dir, name));
   });
 
-  it('provisions, clones, and fast-paths per-branch databases across checkouts', async () => {
+  it('provisions, clones from snapshots, and fast-paths per-branch databases across checkouts', async () => {
     const admin = process.env.BRANCHLY_TEST_PG_URL;
     if (admin === undefined || admin.length === 0) {
       return;
@@ -160,6 +185,17 @@ suite('branchly end-to-end · prisma + postgres + git', () => {
       const fastPathOutput = await run('npx', ['--no-install', 'branchly', 'sync'], fixture);
       expect(fastPathOutput).toContain('already in sync');
       expect(await widgetColumn(mainUrl, 'color')).toBeNull();
+
+      const fingerprint = await mainFingerprint(fixture);
+      expect(await databaseExists(admin, `e2e___snapshot__${fingerprint}`)).toBe(true);
+
+      await git(fixture, ['checkout', '-b', 'sibling']);
+      await dropDatabase(admin, `e2e_main__${fingerprint}`);
+      await run('npx', ['--no-install', 'branchly', 'sync', '--quiet'], fixture);
+      const siblingUrl = await resolvedUrl(fixture);
+      expect(siblingUrl).not.toBe(mainUrl);
+      expect(await queryRow(siblingUrl, 'SELECT count(*)::int AS count FROM "Widget"')).toEqual({ count: 1 });
+      expect(await widgetColumn(siblingUrl, 'color')).toBeNull();
 
       await dropTestDatabases(admin);
     } finally {
