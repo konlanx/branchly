@@ -65,9 +65,6 @@ importers:
 
   packages/datasource-postgres:
     dependencies:
-      branchly:
-        specifier: workspace:*
-        version: link:../core
       pg:
         specifier: ^8.13.1
         version: 8.21.0
@@ -75,21 +72,24 @@ importers:
       '@types/pg':
         specifier: ^8.11.10
         version: 8.20.0
+      branchly:
+        specifier: workspace:*
+        version: link:../core
 
   packages/migrator-prisma:
-    dependencies:
+    devDependencies:
       branchly:
         specifier: workspace:*
         version: link:../core
 
   packages/resolver-env-file:
-    dependencies:
+    devDependencies:
       branchly:
         specifier: workspace:*
         version: link:../core
 
   packages/vcs-git:
-    dependencies:
+    devDependencies:
       branchly:
         specifier: workspace:*
         version: link:../core

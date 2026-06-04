@@ -1,33 +1,185 @@
 # branchly
 
-A local-first, ORM- and database-agnostic tool that keeps each VCS branch paired
-with its own database state, so switching branches never forces a manual reset/reseed.
+> Give every git branch its own database — switch branches, and your database state follows automatically.
 
-See [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md) for the full architecture
-specification and [CLAUDE.md](./CLAUDE.md) for coding style and verification conventions.
+## What it does
 
-## Repository layout
+When several branches contain different schema migrations, a single shared development
+database constantly drifts out of sync with whatever branch you have checked out. Migration
+tools notice the mismatch and reset the database, wiping your data and forcing a reseed.
 
-This is a pnpm + TypeScript monorepo. Each axis of the design (migrator, datasource,
-resolver, vcs) is a separate package, following the `M + N` plugin model.
+**branchly** gives each branch its own isolated database state and makes moving between
+those states automatic and fast:
 
-```
-packages/
-├── core/        # the `branchly` package — kernel, CLI, and adapter interfaces
-└── vcs-git/     # @branchly/vcs-git — reference VCS adapter (git)
-```
+- The first time you visit a branch, branchly provisions it for you (create → migrate → seed).
+- Every later visit is instant — no migrate, no reseed.
+- It hooks into `git checkout`, so most of the time you do nothing at all.
 
-## Development
+It's local-first and works through small plugins, so it isn't tied to one ORM or database.
+The reference setup is **git + Prisma + PostgreSQL**.
+
+## Requirements
+
+- **Node.js 22+**
+- A **git** repository
+- A **PostgreSQL** server you can create databases on (the reference datasource uses
+  `CREATE DATABASE … TEMPLATE` for instant clones)
+- A **Prisma** project with a `prisma/migrations` folder (the reference migrator runs
+  `prisma migrate deploy`)
+
+## Install
+
+> branchly isn't on npm yet. To try it today, build and install it from source —
+> see [Running from source](#running-from-source-pre-release) below.
+
+Once published, installation will be:
 
 ```sh
-pnpm install          # install dependencies and set up git hooks
-pnpm run dev          # build all packages in watch mode
-pnpm run lint         # ESLint across the workspace
-pnpm run format       # format with Prettier
-pnpm run typecheck    # typecheck every package
-pnpm run test         # run the Vitest suite
-pnpm run build        # build every package with tsup
+npm install --save-dev branchly \
+  @branchly/vcs-git \
+  @branchly/migrator-prisma \
+  @branchly/datasource-postgres \
+  @branchly/resolver-env-file
 ```
 
-Verification gates run automatically: **pre-commit** formats staged files and typechecks;
-**pre-push** runs the test suite. The same gates run in CI on every pull request.
+## Quick start
+
+branchly reads its **admin** Postgres connection from `BRANCHLY_DATABASE_URL` — point it at a
+database you can create others from (the maintenance `postgres` database is a good choice).
+Put it wherever you keep secrets: a `.env` file (branchly loads it automatically), or an
+injected environment (Doppler, direnv, CI). No `export` needed.
+
+```sh
+# .env
+BRANCHLY_DATABASE_URL=postgres://user:pass@localhost:5432/postgres
+```
+
+```sh
+# 1. Set up branchly: detect your stack, write a config, install the git hook
+npx branchly init
+
+# 2. Provision the branch you're on right now
+npx branchly sync
+```
+
+After `init`, branchly runs automatically whenever you `git checkout` a branch — switching
+branches selects (or provisions) the matching database with no manual steps.
+
+```sh
+git checkout -b feature/new-thing   # branchly provisions a fresh database for it
+git checkout main                    # branchly instantly switches back to main's database
+```
+
+Check what's going on at any time:
+
+```sh
+npx branchly status
+```
+
+## Commands
+
+| Command                | What it does                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `branchly init`        | Detect your stack, write `branchly.config.ts`, install the git `post-checkout` hook, and update `.gitignore`. |
+| `branchly sync`        | Provision the current branch now (the same flow the hook runs).                                               |
+| `branchly status`      | Show the current branch → database mapping and whether it's provisioned.                                      |
+| `branchly on-checkout` | Internal hook entry point — runs automatically on `git checkout`.                                             |
+
+Add `--quiet` to any command to silence the friendly output (errors still show).
+
+## Configuration
+
+`branchly init` writes a `branchly.config.ts` you can commit so your team shares the same setup:
+
+```ts
+import { defineConfig, env } from 'branchly';
+
+export default defineConfig({
+  vcs: 'git',
+  migrator: { use: 'prisma' },
+  datasource: { use: 'postgres', admin: env('BRANCHLY_DATABASE_URL'), prefix: 'app' },
+  resolver: { use: 'env-file', file: '.env', key: 'DATABASE_URL' },
+  protect: ['main', 'master', 'production'],
+  cache: { enabled: true, max: 10, base: 'main' },
+});
+```
+
+- `migrator` / `datasource` / `resolver` each name a plugin (`prisma` resolves to
+  `@branchly/migrator-prisma`, and so on).
+- **Input vs output — two different variables, on purpose.** `datasource.admin` is the
+  connection branchly _reads_ (`BRANCHLY_DATABASE_URL`); branchly swaps the database name per
+  branch and the `resolver` _writes_ the result to whatever your app reads (`DATABASE_URL` in
+  `.env`). Keeping them separate avoids branchly overwriting the value it depends on.
+- branchly auto-loads `.env`, but never overrides a variable already present in the
+  environment — so injected secrets (Doppler, direnv, CI) always win.
+
+## How it works
+
+Each branch maps to a **key** built from a safe form of the branch name plus a fingerprint of
+its migrations. branchly asks the datasource whether a database for that key already exists:
+
+- **It does** → just point your app at it (the instant "fast path").
+- **It doesn't** → clone it from a matching database when possible, otherwise create it fresh,
+  then run migrations and (for fresh databases) seed.
+
+A small `.branchly/manifest.json` (gitignored) records which databases branchly created so it
+can manage them safely.
+
+## Running from source (pre-release)
+
+branchly is a pnpm + TypeScript monorepo. To test it in a local project before it's published,
+build it and install the packed tarballs.
+
+```sh
+# 1. Build the packages
+git clone <this-repo> branchly
+cd branchly
+pnpm install
+pnpm build
+
+# 2. Pack all five packages into tarballs
+mkdir -p /tmp/branchly-packs
+for pkg in core vcs-git migrator-prisma datasource-postgres resolver-env-file; do
+  (cd "packages/$pkg" && pnpm pack --pack-destination /tmp/branchly-packs)
+done
+```
+
+Then, in **your test project**, install the five tarballs.
+
+**npm / pnpm:**
+
+```sh
+npm install --save-dev /tmp/branchly-packs/*.tgz
+```
+
+**Yarn** (Classic or Berry) — Yarn doesn't expand globs, so list them explicitly:
+
+```sh
+yarn add -D \
+  /tmp/branchly-packs/branchly-0.0.0.tgz \
+  /tmp/branchly-packs/branchly-vcs-git-0.0.0.tgz \
+  /tmp/branchly-packs/branchly-migrator-prisma-0.0.0.tgz \
+  /tmp/branchly-packs/branchly-datasource-postgres-0.0.0.tgz \
+  /tmp/branchly-packs/branchly-resolver-env-file-0.0.0.tgz
+```
+
+Now run the CLI from the project. With npm/pnpm use `npx branchly …`; with Yarn Berry use
+`yarn branchly …`:
+
+```sh
+npx branchly init      # or: yarn branchly init
+```
+
+> Re-packing later? The version stays `0.0.0`, so package managers may serve a cached copy.
+> With Yarn Berry run `yarn cache clean` first; with npm, reinstall the tarballs.
+
+## Learn more
+
+- [`IMPLEMENTATION_GUIDE.md`](./IMPLEMENTATION_GUIDE.md) — the full architecture specification.
+- [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) — the build roadmap and current progress.
+
+## Project status
+
+Early days. The kernel, the git + Prisma + Postgres + env-file reference plugins, and the
+`init` / `sync` / `status` / `on-checkout` commands work today. Snapshot caching, `prune`/`gc`,
+and more adapters (SQLite, Drizzle, MySQL, …) are on the roadmap.

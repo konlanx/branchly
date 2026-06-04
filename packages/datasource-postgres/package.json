@@ -18,11 +18,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "branchly": "workspace:*",
     "pg": "^8.13.1"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.10"
+    "@types/pg": "^8.11.10",
+    "branchly": "workspace:*"
   },
   "publishConfig": {
     "access": "public",

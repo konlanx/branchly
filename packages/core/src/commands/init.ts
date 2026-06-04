@@ -8,7 +8,8 @@ import { installPostCheckoutHook } from '../init/hook';
 import { MANIFEST_DIR } from '../manifest';
 import type { Reporter } from '../runtime/reporter';
 
-const DEFAULT_URL_ENV = 'DATABASE_URL';
+const ADMIN_ENV = 'BRANCHLY_DATABASE_URL';
+const APP_ENV = 'DATABASE_URL';
 
 export interface InitOptions {
   readonly cwd: string;
@@ -41,7 +42,7 @@ export const runInit = async (options: InitOptions): Promise<void> => {
   const { cwd, reporter } = options;
   reporter.intro('branchly init');
   const detected = await detectStack(cwd);
-  const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, urlEnv: DEFAULT_URL_ENV }));
+  const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, adminEnv: ADMIN_ENV, appEnv: APP_ENV }));
   await updateGitignore(cwd);
   const installedHook = await installPostCheckoutHook(cwd);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
@@ -50,5 +51,6 @@ export const runInit = async (options: InitOptions): Promise<void> => {
   reporter.step(
     `git hook:  ${installedHook ? 'post-checkout is wired up 🪝' : 'add `npx branchly on-checkout "$@"` to your hook'}`,
   );
+  reporter.step(`next:      set ${ADMIN_ENV} to your admin Postgres connection (in .env, Doppler, etc.)`);
   reporter.outro('branchly is set up — happy branching! 🎉');
 };

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import process from 'node:process';
 
 import { runInit } from './commands/init';
@@ -6,6 +8,13 @@ import { runOnCheckout } from './commands/on-checkout';
 import { runStatus } from './commands/status';
 import { runSync } from './commands/sync';
 import { createReporter, type Reporter } from './runtime/reporter';
+
+const loadProjectEnv = (cwd: string): void => {
+  const envPath = join(cwd, '.env');
+  if (existsSync(envPath)) {
+    process.loadEnvFile(envPath);
+  }
+};
 
 const dispatch = (
   command: string | undefined,
@@ -35,8 +44,10 @@ const main = async (argv: readonly string[]): Promise<void> => {
   const quiet = tokens.includes('--quiet');
   const [command, ...args] = tokens.filter((token) => token !== '--quiet');
   const reporter = createReporter({ quiet });
+  const cwd = process.cwd();
+  loadProjectEnv(cwd);
   try {
-    await dispatch(command, args, reporter, process.cwd());
+    await dispatch(command, args, reporter, cwd);
   } catch (error) {
     reporter.error(error instanceof Error ? error.message : 'Something unexpected went wrong.');
     process.exitCode = 1;

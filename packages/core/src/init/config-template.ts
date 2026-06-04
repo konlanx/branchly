@@ -2,7 +2,8 @@ export interface ConfigTemplateInput {
   readonly migrator: string;
   readonly datasource: string;
   readonly resolver: string;
-  readonly urlEnv: string;
+  readonly adminEnv: string;
+  readonly appEnv: string;
 }
 
 export const renderConfig = (input: ConfigTemplateInput): string =>
@@ -11,8 +12,8 @@ export const renderConfig = (input: ConfigTemplateInput): string =>
 export default defineConfig({
   vcs: 'git',
   migrator: { use: '${input.migrator}' },
-  datasource: { use: '${input.datasource}', admin: env('${input.urlEnv}'), prefix: 'app' },
-  resolver: { use: '${input.resolver}', file: '.env', key: '${input.urlEnv}' },
+  datasource: { use: '${input.datasource}', admin: env('${input.adminEnv}'), prefix: 'app' },
+  resolver: { use: '${input.resolver}', file: '.env', key: '${input.appEnv}' },
   protect: ['main', 'master', 'production'],
   cache: { enabled: true, max: 10, base: 'main' },
 });

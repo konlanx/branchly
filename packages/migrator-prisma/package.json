@@ -17,7 +17,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
+  "devDependencies": {
     "branchly": "workspace:*"
   },
   "publishConfig": {
