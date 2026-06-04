@@ -1,0 +1,8 @@
+packages:
+  - 'packages/*'
+
+# esbuild (tsup) and unrs-resolver (eslint-plugin-import-x) ship build scripts
+# that pnpm 10 blocks by default; both are needed for the toolchain to work.
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver
