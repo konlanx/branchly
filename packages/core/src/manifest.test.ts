@@ -8,6 +8,7 @@ import { emptyManifest, manifestPath, readManifest, recordEntry, removeEntry, wr
 
 const sampleEntry = {
   key: 'main__abc',
+  ref: 'main',
   slug: 'main',
   fingerprint: 'abc',
   createdAt: '2026-01-01T00:00:00.000Z',

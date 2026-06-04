@@ -10,6 +10,7 @@ const MANIFEST_VERSION = 1;
 
 export interface ManifestEntry {
   readonly key: BranchKey;
+  readonly ref: string;
   readonly slug: string;
   readonly fingerprint: string;
   readonly createdAt: string;
