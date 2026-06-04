@@ -22,7 +22,7 @@ export const createSqliteDatasource = (options: SqliteDatasourceOptions = {}): D
   return {
     id: 'sqlite',
     apiVersion: 1,
-    capabilities: { instantClone: true, snapshot: false, isolatedPerBranch: true },
+    capabilities: { instantClone: true, snapshot: true, isolatedPerBranch: true },
     resolve: (key) => `file:${fileFor(key)}`,
     exists: (key) => fileExists(fileFor(key)),
     list: async () => {

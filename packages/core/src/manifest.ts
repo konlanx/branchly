@@ -16,14 +16,22 @@ export interface ManifestEntry {
   readonly createdAt: string;
 }
 
+export interface SnapshotEntry {
+  readonly key: BranchKey;
+  readonly fingerprint: string;
+  readonly createdAt: string;
+  readonly clonedAt: string;
+}
+
 export interface Manifest {
   readonly version: number;
   readonly entries: readonly ManifestEntry[];
+  readonly snapshots: readonly SnapshotEntry[];
 }
 
 export const manifestPath = (root: string): string => join(root, MANIFEST_DIR, MANIFEST_FILE);
 
-export const emptyManifest = (): Manifest => ({ version: MANIFEST_VERSION, entries: [] });
+export const emptyManifest = (): Manifest => ({ version: MANIFEST_VERSION, entries: [], snapshots: [] });
 
 export const recordEntry = (manifest: Manifest, entry: ManifestEntry): Manifest => ({
   ...manifest,
@@ -33,6 +41,18 @@ export const recordEntry = (manifest: Manifest, entry: ManifestEntry): Manifest 
 export const removeEntry = (manifest: Manifest, key: BranchKey): Manifest => ({
   ...manifest,
   entries: manifest.entries.filter((existing) => existing.key !== key),
+});
+
+export const recordSnapshot = (manifest: Manifest, snapshot: SnapshotEntry): Manifest => ({
+  ...manifest,
+  snapshots: [...manifest.snapshots.filter((existing) => existing.fingerprint !== snapshot.fingerprint), snapshot],
+});
+
+export const touchSnapshot = (manifest: Manifest, fingerprint: string, clonedAt: string): Manifest => ({
+  ...manifest,
+  snapshots: manifest.snapshots.map((existing) =>
+    existing.fingerprint === fingerprint ? { ...existing, clonedAt } : existing,
+  ),
 });
 
 const isNotFoundError = (error: unknown): boolean =>
@@ -48,8 +68,12 @@ export const readManifest = async (path: string): Promise<Manifest> => {
   if (content === null) {
     return emptyManifest();
   }
-  const parsed = JSON.parse(content) as unknown;
-  return parsed as Manifest;
+  const parsed = JSON.parse(content) as Partial<Manifest>;
+  return {
+    version: parsed.version ?? MANIFEST_VERSION,
+    entries: parsed.entries ?? [],
+    snapshots: parsed.snapshots ?? [],
+  };
 };
 
 export const writeManifest = async (path: string, manifest: Manifest): Promise<void> => {

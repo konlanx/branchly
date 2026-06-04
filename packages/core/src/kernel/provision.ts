@@ -7,7 +7,8 @@ import type {
   MigratorAdapter,
   Vcs,
 } from '../interfaces';
-import { type Manifest, recordEntry } from '../manifest';
+import { type Manifest, recordEntry, recordSnapshot, touchSnapshot } from '../manifest';
+import { evictSnapshots, snapshotKeyFor } from './cache';
 import { pickCloneSource } from './clone-source';
 import { slugForRef } from './identity';
 import { makeKey } from './key';
@@ -45,6 +46,36 @@ export interface ProvisionResult {
   readonly manifest: Manifest;
 }
 
+interface CacheParams {
+  readonly datasource: DatasourceAdapter;
+  readonly manifest: Manifest;
+  readonly key: BranchKey;
+  readonly fingerprint: string;
+  readonly baseSlug: string;
+  readonly max: number;
+  readonly now: () => string;
+  readonly report: ProvisionReporter;
+}
+
+const cacheSnapshot = async (params: CacheParams): Promise<Manifest> => {
+  if (params.manifest.snapshots.some((snapshot) => snapshot.fingerprint === params.fingerprint)) {
+    return params.manifest;
+  }
+  params.report({ kind: 'snapshotting' });
+  const snapshotKey = snapshotKeyFor(params.fingerprint);
+  await params.datasource.clone(params.key, snapshotKey);
+  const recorded = recordSnapshot(params.manifest, {
+    key: snapshotKey,
+    fingerprint: params.fingerprint,
+    createdAt: params.now(),
+    clonedAt: params.now(),
+  });
+  const baseFingerprint = recorded.entries.find((entry) => entry.slug === params.baseSlug)?.fingerprint;
+  const eviction = evictSnapshots(recorded.snapshots, params.max, baseFingerprint);
+  await Promise.all(eviction.evicted.map((snapshot) => params.datasource.destroy(snapshot.key)));
+  return { ...recorded, snapshots: eviction.kept };
+};
+
 export const provision = async (context: ProvisionContext): Promise<ProvisionResult> => {
   const { vcs, migrator, datasource, resolver, config, manifest, now } = context;
   const report = context.report ?? (() => undefined);
@@ -59,8 +90,9 @@ export const provision = async (context: ProvisionContext): Promise<ProvisionRes
     return { key, ref, slug, connection, outcome: 'fast-path', manifest };
   }
 
+  const baseSlug = slugify(config.cache.base);
   const strategy = negotiateStrategy(datasource.capabilities);
-  const source = strategy.clone ? pickCloneSource(manifest.entries, fingerprint, slugify(config.cache.base)) : null;
+  const source = strategy.clone ? pickCloneSource(manifest.snapshots, manifest.entries, fingerprint, baseSlug) : null;
   if (source === null) {
     report({ kind: 'creating' });
     await datasource.create(key);
@@ -77,12 +109,24 @@ export const provision = async (context: ProvisionContext): Promise<ProvisionRes
     report({ kind: 'seeding' });
     await migrator.seed(connection);
   }
-  if (strategy.snapshot && config.cache.enabled) {
-    report({ kind: 'snapshotting' });
-    await datasource.snapshot?.(key);
-  }
 
   const recorded = recordEntry(manifest, { key, ref, slug, fingerprint, createdAt: now() });
+  const clonedFromSnapshot = source === snapshotKeyFor(fingerprint);
+  const touched = clonedFromSnapshot ? touchSnapshot(recorded, fingerprint, now()) : recorded;
+  const cacheable = !cloned && strategy.snapshot && config.cache.enabled;
+  const finalManifest = cacheable
+    ? await cacheSnapshot({
+        datasource,
+        manifest: touched,
+        key,
+        fingerprint,
+        baseSlug,
+        max: config.cache.max,
+        now,
+        report,
+      })
+    : touched;
+
   await resolver.inject(connection);
-  return { key, ref, slug, connection, outcome: cloned ? 'cloned' : 'created', manifest: recorded };
+  return { key, ref, slug, connection, outcome: cloned ? 'cloned' : 'created', manifest: finalManifest };
 };

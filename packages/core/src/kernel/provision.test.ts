@@ -9,7 +9,7 @@ import type {
   MigratorAdapter,
   Vcs,
 } from '../interfaces';
-import { emptyManifest, recordEntry } from '../manifest';
+import { emptyManifest, recordEntry, recordSnapshot } from '../manifest';
 import { provision } from './provision';
 
 const baseConfig: BranchlyConfig = {
@@ -52,7 +52,10 @@ const createDatasource = (capabilities: Capabilities, existing: ReadonlySet<Bran
     present.add(to);
     return Promise.resolve();
   });
-  const snapshot = vi.fn(() => Promise.resolve());
+  const destroy = vi.fn((key: BranchKey) => {
+    present.delete(key);
+    return Promise.resolve();
+  });
   const adapter: DatasourceAdapter = {
     id: 'fake',
     apiVersion: 1,
@@ -62,13 +65,9 @@ const createDatasource = (capabilities: Capabilities, existing: ReadonlySet<Bran
     list: () => Promise.resolve([...present]),
     create,
     clone,
-    destroy: (key) => {
-      present.delete(key);
-      return Promise.resolve();
-    },
-    snapshot,
+    destroy,
   };
-  return { adapter, create, clone, snapshot };
+  return { adapter, create, clone, destroy };
 };
 
 const createResolver = (): { adapter: ConnectionResolver; inject: ReturnType<typeof vi.fn> } => {
@@ -120,7 +119,6 @@ describe('provision', () => {
     expect(migrator.apply).toHaveBeenCalledWith('conn://feature_x__fp1');
     expect(migrator.seed).toHaveBeenCalledWith('conn://feature_x__fp1');
     expect(datasource.clone).not.toHaveBeenCalled();
-    expect(datasource.snapshot).not.toHaveBeenCalled();
     expect(result.manifest.entries).toEqual([
       { key: 'feature_x__fp1', ref: 'feature/x', slug: 'feature_x', fingerprint: 'fp1', createdAt: 'ts' },
     ]);
@@ -181,7 +179,7 @@ describe('provision', () => {
     expect(migrator.seed).not.toHaveBeenCalled();
   });
 
-  it('falls back to create + seed and snapshots when clone finds no source', async () => {
+  it('creates and records a fingerprint-keyed snapshot on a fresh build', async () => {
     const datasource = createDatasource(caps(true, true));
     const migrator = createMigrator('fp1');
     const resolver = createResolver();
@@ -197,9 +195,63 @@ describe('provision', () => {
     });
 
     expect(result.outcome).toBe('created');
-    expect(datasource.clone).not.toHaveBeenCalled();
     expect(migrator.seed).toHaveBeenCalled();
-    expect(datasource.snapshot).toHaveBeenCalledWith('main__fp1');
+    expect(datasource.clone).toHaveBeenCalledWith('main__fp1', '__snapshot__fp1');
+    expect(result.manifest.snapshots).toEqual([
+      { key: '__snapshot__fp1', fingerprint: 'fp1', createdAt: 't', clonedAt: 't' },
+    ]);
+  });
+
+  it('clones from a matching snapshot and skips seeding', async () => {
+    const manifest = recordSnapshot(emptyManifest(), {
+      key: '__snapshot__fp1',
+      fingerprint: 'fp1',
+      createdAt: 't0',
+      clonedAt: 't0',
+    });
+    const datasource = createDatasource(caps(true, true), new Set(['__snapshot__fp1']));
+    const migrator = createMigrator('fp1');
+    const resolver = createResolver();
+
+    const result = await provision({
+      vcs: fakeVcs('feature/x'),
+      migrator: migrator.adapter,
+      datasource: datasource.adapter,
+      resolver: resolver.adapter,
+      config: baseConfig,
+      manifest,
+      now: () => 't1',
+    });
+
+    expect(result.outcome).toBe('cloned');
+    expect(datasource.clone).toHaveBeenCalledWith('__snapshot__fp1', 'feature_x__fp1');
+    expect(migrator.seed).not.toHaveBeenCalled();
+    expect(result.manifest.snapshots[0]?.clonedAt).toBe('t1');
+  });
+
+  it('evicts the least-recently-cloned snapshot beyond cache.max', async () => {
+    const manifest = recordSnapshot(emptyManifest(), {
+      key: '__snapshot__old',
+      fingerprint: 'old',
+      createdAt: 't0',
+      clonedAt: 't0',
+    });
+    const datasource = createDatasource(caps(true, true), new Set(['__snapshot__old']));
+    const migrator = createMigrator('fp1');
+    const resolver = createResolver();
+
+    const result = await provision({
+      vcs: fakeVcs('feature/x'),
+      migrator: migrator.adapter,
+      datasource: datasource.adapter,
+      resolver: resolver.adapter,
+      config: { ...baseConfig, cache: { enabled: true, max: 1, base: 'main' } },
+      manifest,
+      now: () => 't1',
+    });
+
+    expect(datasource.destroy).toHaveBeenCalledWith('__snapshot__old');
+    expect(result.manifest.snapshots.map((snapshot) => snapshot.fingerprint)).toEqual(['fp1']);
   });
 
   it('does not snapshot when caching is disabled', async () => {
@@ -207,7 +259,7 @@ describe('provision', () => {
     const migrator = createMigrator('fp1');
     const resolver = createResolver();
 
-    await provision({
+    const result = await provision({
       vcs: fakeVcs('main'),
       migrator: migrator.adapter,
       datasource: datasource.adapter,
@@ -217,6 +269,7 @@ describe('provision', () => {
       now: () => 't',
     });
 
-    expect(datasource.snapshot).not.toHaveBeenCalled();
+    expect(datasource.clone).not.toHaveBeenCalled();
+    expect(result.manifest.snapshots).toEqual([]);
   });
 });

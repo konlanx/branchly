@@ -106,6 +106,15 @@ importers:
         specifier: ^8.13.1
         version: 8.21.0
 
+  packages/migrator-drizzle:
+    devDependencies:
+      '@branchly/adapter-test-kit':
+        specifier: workspace:*
+        version: link:../adapter-test-kit
+      branchly:
+        specifier: workspace:*
+        version: link:../core
+
   packages/migrator-prisma:
     devDependencies:
       branchly:
