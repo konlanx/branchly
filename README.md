@@ -108,11 +108,11 @@ Yarn doesn't expand globs, so list them explicitly:
 
 ```sh
 yarn add -D \
-  /tmp/branchly-packs/branchly-0.0.0.tgz \
-  /tmp/branchly-packs/branchly-vcs-git-0.0.0.tgz \
-  /tmp/branchly-packs/branchly-migrator-prisma-0.0.0.tgz \
-  /tmp/branchly-packs/branchly-datasource-postgres-0.0.0.tgz \
-  /tmp/branchly-packs/branchly-resolver-env-file-0.0.0.tgz
+  /tmp/branchly-packs/branchly-0.1.0.tgz \
+  /tmp/branchly-packs/branchly-vcs-git-0.1.0.tgz \
+  /tmp/branchly-packs/branchly-migrator-prisma-0.1.0.tgz \
+  /tmp/branchly-packs/branchly-datasource-postgres-0.1.0.tgz \
+  /tmp/branchly-packs/branchly-resolver-env-file-0.1.0.tgz
 ```
 
 Finally, set it up. Use `--no-install`, since `init` can't fetch the unpublished adapters from a
