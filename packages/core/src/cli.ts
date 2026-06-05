@@ -7,6 +7,7 @@ import { runDoctor } from './commands/doctor';
 import { runGc } from './commands/gc';
 import { runInit } from './commands/init';
 import { runOnCheckout } from './commands/on-checkout';
+import { runPostMerge } from './commands/post-merge';
 import { runPrune } from './commands/prune';
 import { runRun } from './commands/run';
 import { runStatus } from './commands/status';
@@ -56,7 +57,7 @@ const dispatch = (
     return runStatus({ cwd, reporter });
   }
   if (command === 'prune') {
-    return runPrune({ cwd, reporter, force: args.includes('--force') });
+    return runPrune({ cwd, reporter, force: args.includes('--force'), stale: args.includes('--stale') });
   }
   if (command === 'gc') {
     return runGc({ cwd, reporter });
@@ -71,8 +72,11 @@ const dispatch = (
   if (command === 'on-checkout') {
     return runOnCheckout({ cwd, reporter, args });
   }
+  if (command === 'post-merge') {
+    return runPostMerge({ cwd, reporter });
+  }
   reporter.error(
-    `Unknown command "${command ?? ''}". Try one of: init, sync, status, run, prune, gc, doctor, on-checkout.`,
+    `Unknown command "${command ?? ''}". Try one of: init, sync, status, run, prune, gc, doctor, on-checkout, post-merge.`,
   );
   process.exitCode = 1;
   return Promise.resolve();

@@ -19,14 +19,21 @@ const config = {
   cache: { enabled: true, max: 10, base: 'main' },
 };
 
-const entryFor = (ref: string) => ({ key: `${ref}__fp`, ref, slug: ref, fingerprint: 'fp', createdAt: 't' });
+const entryFor = (ref: string, lastUsedAt = 't') => ({
+  key: `${ref}__fp`,
+  ref,
+  slug: ref,
+  fingerprint: 'fp',
+  createdAt: lastUsedAt,
+  lastUsedAt,
+});
 
-const fakePlugins = (destroy: DatasourceAdapter['destroy']): Plugins => ({
+const fakePlugins = (destroy: DatasourceAdapter['destroy'], liveRefs: readonly string[] = ['main']): Plugins => ({
   vcs: {
     id: 'git',
     apiVersion: 1,
     currentRef: () => Promise.resolve('main'),
-    liveRefs: () => Promise.resolve(['main']),
+    liveRefs: () => Promise.resolve([...liveRefs]),
   } satisfies Vcs,
   migrator: {
     id: 'prisma',
@@ -98,6 +105,61 @@ describe('runPrune', () => {
       expect(destroy).toHaveBeenCalledTimes(1);
       const entries = (await readManifest(manifestPath(root))).entries;
       expect(entries.map((entry) => entry.ref)).toEqual(['main']);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('also reclaims stale-but-alive branches with --stale --force', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'branchly-prune-'));
+    try {
+      await writeFile(join(root, 'branchly.config.ts'), `export default ${JSON.stringify(config)};\n`, 'utf8');
+      const manifest = [
+        entryFor('main', '2026-06-05T00:00:00.000Z'),
+        entryFor('feature/stale', '2026-01-01T00:00:00.000Z'),
+        entryFor('feature/fresh', '2026-06-04T00:00:00.000Z'),
+      ].reduce(recordEntry, emptyManifest());
+      await writeManifest(manifestPath(root), manifest);
+
+      const destroy = vi.fn(() => Promise.resolve());
+      await runPrune({
+        cwd: root,
+        reporter: createReporter({ quiet: true }),
+        force: true,
+        stale: true,
+        now: () => '2026-06-05T00:00:00.000Z',
+        load: loadFrom(fakePlugins(destroy, ['main', 'feature/stale', 'feature/fresh'])),
+      });
+
+      expect(destroy).toHaveBeenCalledWith('feature/stale__fp');
+      expect(destroy).toHaveBeenCalledTimes(1);
+      const entries = (await readManifest(manifestPath(root))).entries;
+      expect(entries.map((entry) => entry.ref)).toEqual(['main', 'feature/fresh']);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves stale-but-alive branches untouched without --stale', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'branchly-prune-'));
+    try {
+      await writeFile(join(root, 'branchly.config.ts'), `export default ${JSON.stringify(config)};\n`, 'utf8');
+      const manifest = [
+        entryFor('main', '2026-06-05T00:00:00.000Z'),
+        entryFor('feature/stale', '2026-01-01T00:00:00.000Z'),
+      ].reduce(recordEntry, emptyManifest());
+      await writeManifest(manifestPath(root), manifest);
+
+      const destroy = vi.fn(() => Promise.resolve());
+      await runPrune({
+        cwd: root,
+        reporter: createReporter({ quiet: true }),
+        force: true,
+        now: () => '2026-06-05T00:00:00.000Z',
+        load: loadFrom(fakePlugins(destroy, ['main', 'feature/stale'])),
+      });
+
+      expect(destroy).not.toHaveBeenCalled();
     } finally {
       await rm(root, { recursive: true, force: true });
     }

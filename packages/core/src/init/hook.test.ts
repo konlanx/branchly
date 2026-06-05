@@ -9,34 +9,43 @@ import {
   hasBranchlyHook,
   hookCommand,
   hookTarget,
-  installPostCheckoutHook,
+  installHook,
+  POST_CHECKOUT_HOOK,
+  POST_MERGE_HOOK,
   renderHookFile,
 } from './hook';
 
 describe('hookCommand', () => {
   it('returns the plain command without doppler', () => {
-    expect(hookCommand(false)).toBe('npx branchly on-checkout "$@"');
+    expect(hookCommand(POST_CHECKOUT_HOOK, false)).toBe('npx branchly on-checkout "$@"');
   });
 
   it('wraps the command with doppler run', () => {
-    expect(hookCommand(true)).toBe('doppler run -- npx branchly on-checkout "$@"');
+    expect(hookCommand(POST_CHECKOUT_HOOK, true)).toBe('doppler run -- npx branchly on-checkout "$@"');
+  });
+
+  it('uses the spec subcommand for other hooks', () => {
+    expect(hookCommand(POST_MERGE_HOOK, false)).toBe('npx branchly post-merge "$@"');
   });
 });
 
 describe('hookTarget', () => {
   it('uses .git/hooks when no hooks path is set', () => {
-    expect(hookTarget('/repo', null)).toEqual({
+    expect(hookTarget('/repo', null, 'post-checkout')).toEqual({
       path: join('/repo', '.git', 'hooks', 'post-checkout'),
       managed: false,
     });
   });
 
   it('uses .husky for a husky hooks path', () => {
-    expect(hookTarget('/repo', '.husky/_')).toEqual({ path: join('/repo', '.husky', 'post-checkout'), managed: true });
+    expect(hookTarget('/repo', '.husky/_', 'post-merge')).toEqual({
+      path: join('/repo', '.husky', 'post-merge'),
+      managed: true,
+    });
   });
 
   it('uses a custom relative hooks path', () => {
-    expect(hookTarget('/repo', 'config/hooks')).toEqual({
+    expect(hookTarget('/repo', 'config/hooks', 'post-checkout')).toEqual({
       path: join('/repo', 'config', 'hooks', 'post-checkout'),
       managed: false,
     });
@@ -48,11 +57,16 @@ describe('renderHookFile', () => {
     expect(renderHookFile('npx branchly on-checkout "$@"', true)).toBe('npx branchly on-checkout "$@"\n');
   });
 
-  it('renders a raw hook with a shebang and a branch-only guard', () => {
-    const content = renderHookFile('npx branchly on-checkout "$@"', false);
+  it('renders a raw hook with a shebang and the spec guard', () => {
+    const content = renderHookFile('npx branchly on-checkout "$@"', false, POST_CHECKOUT_HOOK.guard);
     expect(content).toContain('#!/usr/bin/env sh');
     expect(content).toContain('[ "$3" = "1" ] || exit 0');
     expect(content).toContain('exec npx branchly on-checkout "$@"');
+  });
+
+  it('renders a raw hook without a guard line when the spec has none', () => {
+    const content = renderHookFile('npx branchly post-merge "$@"', false, POST_MERGE_HOOK.guard);
+    expect(content).toBe('#!/usr/bin/env sh\nexec npx branchly post-merge "$@"\n');
   });
 });
 
@@ -61,20 +75,36 @@ describe('appendHookLine / hasBranchlyHook', () => {
     expect(appendHookLine('echo hi', 'npx branchly on-checkout "$@"')).toBe('echo hi\nnpx branchly on-checkout "$@"\n');
   });
 
-  it('detects an existing branchly hook', () => {
-    expect(hasBranchlyHook('echo hi\nnpx branchly on-checkout "$@"\n')).toBe(true);
-    expect(hasBranchlyHook('echo hi\n')).toBe(false);
+  it('detects an existing branchly hook for the given spec', () => {
+    expect(hasBranchlyHook('echo hi\nnpx branchly on-checkout "$@"\n', POST_CHECKOUT_HOOK)).toBe(true);
+    expect(hasBranchlyHook('echo hi\nnpx branchly on-checkout "$@"\n', POST_MERGE_HOOK)).toBe(false);
+    expect(hasBranchlyHook('echo hi\n', POST_CHECKOUT_HOOK)).toBe(false);
   });
 });
 
-describe('installPostCheckoutHook', () => {
-  it('installs a raw hook in .git/hooks', async () => {
+describe('installHook', () => {
+  it('installs a raw post-checkout hook in .git/hooks', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
     try {
-      const result = await installPostCheckoutHook(root, { hooksPath: null, doppler: false });
+      const result = await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: null, doppler: false });
       expect(result.status).toBe('installed');
       expect(result.path).toBe(join(root, '.git', 'hooks', 'post-checkout'));
-      expect(await readFile(result.path, 'utf8')).toContain('exec npx branchly on-checkout');
+      const content = await readFile(result.path, 'utf8');
+      expect(content).toContain('exec npx branchly on-checkout');
+      expect(content).toContain('[ "$3" = "1" ] || exit 0');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('installs a raw post-merge hook without a checkout guard', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
+    try {
+      const result = await installHook(root, POST_MERGE_HOOK, { hooksPath: null, doppler: false });
+      expect(result.path).toBe(join(root, '.git', 'hooks', 'post-merge'));
+      const content = await readFile(result.path, 'utf8');
+      expect(content).toContain('exec npx branchly post-merge');
+      expect(content).not.toContain('"$3"');
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -83,7 +113,7 @@ describe('installPostCheckoutHook', () => {
   it('installs a husky hook at .husky/post-checkout without a shebang', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
     try {
-      const result = await installPostCheckoutHook(root, { hooksPath: '.husky/_', doppler: false });
+      const result = await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: '.husky/_', doppler: false });
       expect(result.path).toBe(join(root, '.husky', 'post-checkout'));
       expect(await readFile(result.path, 'utf8')).toBe('npx branchly on-checkout "$@"\n');
     } finally {
@@ -94,7 +124,7 @@ describe('installPostCheckoutHook', () => {
   it('wraps the hook with doppler run when Doppler is detected', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
     try {
-      const result = await installPostCheckoutHook(root, { hooksPath: null, doppler: true });
+      const result = await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: null, doppler: true });
       expect(result.doppler).toBe(true);
       expect(await readFile(result.path, 'utf8')).toContain('doppler run -- npx branchly on-checkout');
     } finally {
@@ -105,9 +135,9 @@ describe('installPostCheckoutHook', () => {
   it('chains onto an existing foreign hook instead of overwriting it', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
     try {
-      await installPostCheckoutHook(root, { hooksPath: '.husky/_', doppler: false });
+      await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: '.husky/_', doppler: false });
       await writeFile(join(root, '.husky', 'post-checkout'), 'echo existing\n', 'utf8');
-      const result = await installPostCheckoutHook(root, { hooksPath: '.husky/_', doppler: false });
+      const result = await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: '.husky/_', doppler: false });
       expect(result.status).toBe('chained');
       const content = await readFile(result.path, 'utf8');
       expect(content).toContain('echo existing');
@@ -120,8 +150,8 @@ describe('installPostCheckoutHook', () => {
   it('is idempotent when a branchly hook is already present', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
     try {
-      await installPostCheckoutHook(root, { hooksPath: null, doppler: false });
-      const result = await installPostCheckoutHook(root, { hooksPath: null, doppler: false });
+      await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: null, doppler: false });
+      const result = await installHook(root, POST_CHECKOUT_HOOK, { hooksPath: null, doppler: false });
       expect(result.status).toBe('present');
     } finally {
       await rm(root, { recursive: true, force: true });

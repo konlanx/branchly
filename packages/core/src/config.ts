@@ -20,6 +20,12 @@ export interface CacheConfig {
   readonly base: string;
 }
 
+export interface PruneConfig {
+  readonly autoDropDeleted?: boolean;
+  readonly maxAgeDays?: number;
+  readonly nudge?: boolean;
+}
+
 export interface BranchlyConfig {
   readonly vcs: string;
   readonly migrator: AdapterConfig;
@@ -27,6 +33,7 @@ export interface BranchlyConfig {
   readonly resolver: AdapterConfig;
   readonly protect: readonly string[];
   readonly cache: CacheConfig;
+  readonly prune?: PruneConfig;
   readonly quiet?: boolean;
 }
 

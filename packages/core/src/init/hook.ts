@@ -5,7 +5,22 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-const BRANCHLY_HOOK_MARKER = 'branchly on-checkout';
+export interface HookSpec {
+  readonly name: string;
+  readonly subcommand: string;
+  readonly guard?: string;
+}
+
+export const POST_CHECKOUT_HOOK: HookSpec = {
+  name: 'post-checkout',
+  subcommand: 'on-checkout',
+  guard: '[ "$3" = "1" ] || exit 0',
+};
+
+export const POST_MERGE_HOOK: HookSpec = {
+  name: 'post-merge',
+  subcommand: 'post-merge',
+};
 
 export type HookStatus = 'installed' | 'chained' | 'present';
 
@@ -25,29 +40,32 @@ export interface HookTarget {
   readonly managed: boolean;
 }
 
-export const hookCommand = (useDoppler: boolean): string => {
-  const base = 'npx branchly on-checkout "$@"';
+export const hookMarker = (spec: HookSpec): string => `branchly ${spec.subcommand}`;
+
+export const hookCommand = (spec: HookSpec, useDoppler: boolean): string => {
+  const base = `npx branchly ${spec.subcommand} "$@"`;
   return useDoppler ? `doppler run -- ${base}` : base;
 };
 
-export const hookTarget = (repoRoot: string, hooksPath: string | null): HookTarget => {
+export const hookTarget = (repoRoot: string, hooksPath: string | null, hookName: string): HookTarget => {
   if (hooksPath === null || hooksPath.length === 0) {
-    return { path: join(repoRoot, '.git', 'hooks', 'post-checkout'), managed: false };
+    return { path: join(repoRoot, '.git', 'hooks', hookName), managed: false };
   }
   if (hooksPath.includes('.husky')) {
-    return { path: join(repoRoot, '.husky', 'post-checkout'), managed: true };
+    return { path: join(repoRoot, '.husky', hookName), managed: true };
   }
   const base = isAbsolute(hooksPath) ? hooksPath : join(repoRoot, hooksPath);
-  return { path: join(base, 'post-checkout'), managed: false };
+  return { path: join(base, hookName), managed: false };
 };
 
-export const hasBranchlyHook = (content: string): boolean => content.includes(BRANCHLY_HOOK_MARKER);
+export const hasBranchlyHook = (content: string, spec: HookSpec): boolean => content.includes(hookMarker(spec));
 
-export const renderHookFile = (command: string, managed: boolean): string => {
+export const renderHookFile = (command: string, managed: boolean, guard?: string): string => {
   if (managed) {
     return `${command}\n`;
   }
-  return `#!/usr/bin/env sh\n[ "$3" = "1" ] || exit 0\nexec ${command}\n`;
+  const guardLine = guard === undefined ? '' : `${guard}\n`;
+  return `#!/usr/bin/env sh\n${guardLine}exec ${command}\n`;
 };
 
 export const appendHookLine = (existing: string, command: string): string => {
@@ -79,14 +97,14 @@ const readExisting = (path: string): Promise<string | null> =>
     () => null,
   );
 
-export const installPostCheckoutHook = async (cwd: string, deps: InstallHookDeps = {}): Promise<HookResult> => {
+export const installHook = async (cwd: string, spec: HookSpec, deps: InstallHookDeps = {}): Promise<HookResult> => {
   const hooksPath = 'hooksPath' in deps ? (deps.hooksPath ?? null) : await readHooksPath(cwd);
   const useDoppler = 'doppler' in deps ? deps.doppler === true : await detectDoppler(cwd);
-  const command = hookCommand(useDoppler);
-  const target = hookTarget(cwd, hooksPath);
+  const command = hookCommand(spec, useDoppler);
+  const target = hookTarget(cwd, hooksPath, spec.name);
   const existing = await readExisting(target.path);
 
-  if (existing !== null && hasBranchlyHook(existing)) {
+  if (existing !== null && hasBranchlyHook(existing, spec)) {
     return { status: 'present', path: target.path, doppler: useDoppler };
   }
   if (existing !== null) {
@@ -94,7 +112,7 @@ export const installPostCheckoutHook = async (cwd: string, deps: InstallHookDeps
     return { status: 'chained', path: target.path, doppler: useDoppler };
   }
   await mkdir(dirname(target.path), { recursive: true });
-  await writeFile(target.path, renderHookFile(command, target.managed), 'utf8');
+  await writeFile(target.path, renderHookFile(command, target.managed, spec.guard), 'utf8');
   if (!target.managed) {
     await chmod(target.path, 0o755);
   }

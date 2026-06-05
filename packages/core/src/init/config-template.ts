@@ -15,5 +15,6 @@ export default defineConfig({
   resolver: { use: '${input.resolver}', file: '.env', key: '${input.databaseUrlEnv}' },
   protect: ['main', 'master', 'production'],
   cache: { enabled: true, max: 10, base: 'main' },
+  prune: { autoDropDeleted: true, maxAgeDays: 30, nudge: true },
 });
 `;

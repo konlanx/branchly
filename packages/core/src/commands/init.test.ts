@@ -33,6 +33,7 @@ describe('runInit', () => {
       expect(await readFile(join(root, 'branchly.config.ts'), 'utf8')).toContain('defineConfig');
       expect(await readFile(join(root, '.gitignore'), 'utf8')).toContain('.env');
       expect(await readFile(join(root, '.git', 'hooks', 'post-checkout'), 'utf8')).toContain('branchly on-checkout');
+      expect(await readFile(join(root, '.git', 'hooks', 'post-merge'), 'utf8')).toContain('branchly post-merge');
     } finally {
       await rm(root, { recursive: true, force: true });
     }

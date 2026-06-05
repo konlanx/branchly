@@ -48,6 +48,24 @@ describe('createGitVcs', () => {
     }
   });
 
+  it('lists branches merged into HEAD, excluding the current one', async () => {
+    const root = await initRepo();
+    try {
+      await git(root, ['checkout', '-b', 'feature/merged']);
+      await git(root, ['commit', '--allow-empty', '-m', 'feature work']);
+      await git(root, ['checkout', 'main']);
+      await git(root, ['merge', '--no-ff', '-m', 'merge feature', 'feature/merged']);
+      await git(root, ['checkout', '-b', 'feature/active']);
+      await git(root, ['commit', '--allow-empty', '-m', 'ongoing work']);
+      await git(root, ['checkout', 'main']);
+
+      const refs = await createGitVcs({ cwd: root }).mergedRefs?.();
+      expect(refs).toEqual(['feature/merged']);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('resolves the same state directory from the main worktree and a linked worktree', async () => {
     const base = await mkdtemp(join(tmpdir(), 'branchly-wt-'));
     const root = join(base, 'repo');

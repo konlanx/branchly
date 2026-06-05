@@ -6,7 +6,7 @@ import spawn from 'cross-spawn';
 import { renderConfig } from '../init/config-template';
 import { type DetectedStack, detectStack } from '../init/detect';
 import { ensureIgnored } from '../init/gitignore';
-import { type HookResult, installPostCheckoutHook } from '../init/hook';
+import { type HookResult, installHook, POST_CHECKOUT_HOOK, POST_MERGE_HOOK } from '../init/hook';
 import { detectPackageManager, installArgs, type PackageManager } from '../init/package-manager';
 import { resolvePluginName } from '../loader/name';
 import type { Reporter } from '../runtime/reporter';
@@ -56,6 +56,9 @@ const describeHook = (cwd: string, hook: HookResult): string => {
   }
   return `installed at ${where}${doppler} 🪝`;
 };
+
+const installHooks = (cwd: string): Promise<readonly [HookResult, HookResult]> =>
+  Promise.all([installHook(cwd, POST_CHECKOUT_HOOK), installHook(cwd, POST_MERGE_HOOK)]);
 
 const writeConfigFile = async (cwd: string, content: string): Promise<boolean> => {
   const path = join(cwd, 'branchly.config.ts');
@@ -113,10 +116,11 @@ export const runInit = async (options: InitOptions): Promise<void> => {
 
   const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, databaseUrlEnv: DATABASE_URL_ENV }));
   await updateGitignore(cwd);
-  const hook = await installPostCheckoutHook(cwd);
+  const [checkoutHook, mergeHook] = await installHooks(cwd);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
   reporter.step('gitignore: .env is covered (branchly keeps its state in .git)');
-  reporter.step(`git hook:  ${describeHook(cwd, hook)}`);
+  reporter.step(`checkout:  ${describeHook(cwd, checkoutHook)}`);
+  reporter.step(`merge:     ${describeHook(cwd, mergeHook)}`);
   reporter.step(`next:      nothing! branchly reuses your existing ${DATABASE_URL_ENV} (.env, Doppler, etc.) 🌱`);
   reporter.outro('branchly is set up — happy branching! 🎉');
 };

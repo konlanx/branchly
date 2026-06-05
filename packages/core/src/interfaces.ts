@@ -52,5 +52,7 @@ export interface Vcs {
 
   liveRefs?(): Promise<string[]>;
 
+  mergedRefs?(): Promise<string[]>;
+
   stateDir?(): Promise<string>;
 }

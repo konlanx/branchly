@@ -7,7 +7,7 @@ import type {
   MigratorAdapter,
   Vcs,
 } from '../interfaces';
-import { type Manifest, recordEntry, recordSnapshot, touchSnapshot } from '../manifest';
+import { type Manifest, recordEntry, recordSnapshot, touchEntry, touchSnapshot } from '../manifest';
 import { evictSnapshots, snapshotKeyFor } from './cache';
 import { pickCloneSource } from './clone-source';
 import { slugForRef } from './identity';
@@ -87,7 +87,7 @@ export const provision = async (context: ProvisionContext): Promise<ProvisionRes
   if (await datasource.exists(key)) {
     const connection = datasource.resolve(key);
     await resolver.inject(connection);
-    return { key, ref, slug, connection, outcome: 'fast-path', manifest };
+    return { key, ref, slug, connection, outcome: 'fast-path', manifest: touchEntry(manifest, key, now()) };
   }
 
   const baseSlug = slugify(config.cache.base);
@@ -110,7 +110,7 @@ export const provision = async (context: ProvisionContext): Promise<ProvisionRes
     await migrator.seed(connection);
   }
 
-  const recorded = recordEntry(manifest, { key, ref, slug, fingerprint, createdAt: now() });
+  const recorded = recordEntry(manifest, { key, ref, slug, fingerprint, createdAt: now(), lastUsedAt: now() });
   const clonedFromSnapshot = source === snapshotKeyFor(fingerprint);
   const touched = clonedFromSnapshot ? touchSnapshot(recorded, fingerprint, now()) : recorded;
   const cacheable = !cloned && strategy.snapshot && config.cache.enabled;

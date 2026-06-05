@@ -14,6 +14,7 @@ export interface ManifestEntry {
   readonly slug: string;
   readonly fingerprint: string;
   readonly createdAt: string;
+  readonly lastUsedAt?: string;
 }
 
 export interface SnapshotEntry {
@@ -27,6 +28,7 @@ export interface Manifest {
   readonly version: number;
   readonly entries: readonly ManifestEntry[];
   readonly snapshots: readonly SnapshotEntry[];
+  readonly lastSweptAt?: string;
 }
 
 export const manifestPath = (root: string): string => join(root, MANIFEST_DIR, MANIFEST_FILE);
@@ -42,6 +44,13 @@ export const removeEntry = (manifest: Manifest, key: BranchKey): Manifest => ({
   ...manifest,
   entries: manifest.entries.filter((existing) => existing.key !== key),
 });
+
+export const touchEntry = (manifest: Manifest, key: BranchKey, lastUsedAt: string): Manifest => ({
+  ...manifest,
+  entries: manifest.entries.map((existing) => (existing.key === key ? { ...existing, lastUsedAt } : existing)),
+});
+
+export const markSwept = (manifest: Manifest, lastSweptAt: string): Manifest => ({ ...manifest, lastSweptAt });
 
 export const recordSnapshot = (manifest: Manifest, snapshot: SnapshotEntry): Manifest => ({
   ...manifest,
@@ -73,6 +82,7 @@ export const readManifest = async (path: string): Promise<Manifest> => {
     version: parsed.version ?? MANIFEST_VERSION,
     entries: parsed.entries ?? [],
     snapshots: parsed.snapshots ?? [],
+    lastSweptAt: parsed.lastSweptAt,
   };
 };
 
