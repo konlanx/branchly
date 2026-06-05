@@ -77,14 +77,35 @@ npx branchly status
 
 ## Commands
 
-| Command                | What it does                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `branchly init`        | Detect your stack, write `branchly.config.ts`, install the git `post-checkout` hook, and update `.gitignore`. |
-| `branchly sync`        | Provision the current branch now (the same flow the hook runs).                                               |
-| `branchly status`      | Show the current branch → database mapping and whether it's provisioned.                                      |
-| `branchly on-checkout` | Internal hook entry point — runs automatically on `git checkout`.                                             |
+| Command                 | What it does                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `branchly init`         | Detect your stack, write `branchly.config.ts`, install the git `post-checkout` hook, and update `.gitignore`. |
+| `branchly sync`         | Provision the current branch now (the same flow the hook runs).                                               |
+| `branchly status`       | Show the current branch → database mapping and whether it's provisioned.                                      |
+| `branchly run -- <cmd>` | Provision the current branch, then launch `<cmd>` with the per-branch connection injected into its env.       |
+| `branchly prune`        | Drop databases for branches that no longer exist locally. Dry-run by default; add `--force` to apply.         |
+| `branchly gc`           | Evict cached snapshots beyond `cache.max` (never the base).                                                   |
+| `branchly doctor`       | Diagnose config, plugin, git, and database-connection problems.                                               |
+| `branchly on-checkout`  | Internal hook entry point — runs automatically on `git checkout`.                                             |
 
 Add `--quiet` to any command to silence the output (errors still show).
+
+## Doppler & injected environments
+
+If your app reads its database URL from an **injected environment** (Doppler, CI secrets) rather
+than a file, the `env-file` resolver can't help — there's no file for the app to read. Use
+`branchly run` instead: it provisions the current branch and launches your app with the
+per-branch connection injected directly into the child process, overriding whatever the outer
+environment provided.
+
+```sh
+doppler run -- branchly run -- npm run dev
+```
+
+Doppler injects all your secrets (including `BRANCHLY_DATABASE_URL`, the admin connection branchly
+needs); `branchly run` then sets the app's `DATABASE_URL` to the per-branch database last, so it
+wins — no Doppler config changes, no precedence flags. The injected variable name comes from
+`resolver.key` in your config (default `DATABASE_URL`).
 
 ## Configuration
 

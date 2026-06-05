@@ -165,6 +165,21 @@ suite('branchly end-to-end · prisma + postgres + git', () => {
       expect(await queryRow(mainUrl, 'SELECT count(*)::int AS count FROM "Widget"')).toEqual({ count: 1 });
       expect(await widgetColumn(mainUrl, 'color')).toBeNull();
 
+      await run(
+        'npx',
+        [
+          '--no-install',
+          'branchly',
+          'run',
+          '--',
+          'node',
+          '-e',
+          "require('node:fs').writeFileSync('run-env.txt', process.env.DATABASE_URL ?? '')",
+        ],
+        fixture,
+      );
+      expect((await readFile(join(fixture, 'run-env.txt'), 'utf8')).trim()).toBe(mainUrl);
+
       await git(fixture, ['checkout', '-b', 'feature/color']);
       await mkdir(join(fixture, 'prisma', 'migrations', '20240102000000_color'), { recursive: true });
       await writeFile(
