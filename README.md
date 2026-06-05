@@ -20,9 +20,6 @@ pnpm add -D branchly              # pnpm
 yarn add -D branchly              # Yarn
 ```
 
-> Use your project's package manager. Running `npm install` inside a pnpm or Yarn workspace will
-> fail on its `workspace:` dependencies — that's the workspace, not branchly.
-
 Then let branchly set itself up:
 
 ```sh
