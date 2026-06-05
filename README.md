@@ -12,16 +12,21 @@ It's local-first and plugin-based, so it isn't tied to a single stack. Out of th
 
 ## Installation
 
-Install one package:
+Install one package — use whatever package manager your project already uses:
 
 ```sh
-npm install --save-dev branchly
+npm install --save-dev branchly   # npm
+pnpm add -D branchly              # pnpm
+yarn add -D branchly              # Yarn
 ```
+
+> Use your project's package manager. Running `npm install` inside a pnpm or Yarn workspace will
+> fail on its `workspace:` dependencies — that's the workspace, not branchly.
 
 Then let branchly set itself up:
 
 ```sh
-npx branchly init
+npx branchly init     # or: pnpm branchly init · yarn branchly init
 ```
 
 That single command discovers your stack, **installs the adapter packages it needs**, writes a `branchly.config.ts`, and wires up the Git hook. The necessary adapters and your package manager are detected automatically.

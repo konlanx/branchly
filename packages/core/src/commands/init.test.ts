@@ -11,6 +11,7 @@ describe('runInit', () => {
   it('installs the detected adapters, writes a config, and installs the hook', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-init-'));
     try {
+      await writeFile(join(root, 'package-lock.json'), '{}', 'utf8');
       const calls: { command: string; args: readonly string[] }[] = [];
       const installer: Installer = (command, args) => {
         calls.push({ command, args });
