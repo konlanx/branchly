@@ -10,6 +10,8 @@ When your branches carry different migrations, a single shared development datab
 
 It's local-first and plugin-based, so it isn't tied to a single stack. Out of the box it speaks **Git**, **Prisma**, **PostgreSQL**, and your **`.env`** file, with MySQL, SQLite, Drizzle, Knex, and direnv adapters alongside, and room for more.
 
+📚 **Full documentation:** [konlanx.github.io/branchly](https://konlanx.github.io/branchly/) — guides, adapter references, and the adapter-authoring guide.
+
 ## Installation
 
 Install one package — use whatever package manager your project already uses:
