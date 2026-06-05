@@ -28,12 +28,7 @@ npx branchly init     # or: pnpm branchly init · yarn branchly init
 
 That single command discovers your stack, **installs the adapter packages it needs**, writes a `branchly.config.ts`, and wires up the Git hook. The necessary adapters and your package manager are detected automatically.
 
-Point `BRANCHLY_DATABASE_URL` at a database you can create others from (your maintenance `postgres` database is ideal). branchly reads it from the environment (a `.env` file, Doppler, direnv, CI secrets):
-
-```sh
-# .env
-BRANCHLY_DATABASE_URL=postgres://user:pass@localhost:5432/postgres
-```
+Branchly automatically detects a `.env` file, Doppler, direnv, CI secrets, or your Prisma datasource. It keeps the host and credentials and just swaps the database name: a maintenance connection for creating and cloning databases, and a fresh `app_<branch>` database for each branch. Nothing new to set.
 
 That's it. From now on, switching branches just works:
 

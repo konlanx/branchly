@@ -34,7 +34,7 @@ const CONFIG = `import { defineConfig, env } from 'branchly';
 export default defineConfig({
   vcs: 'git',
   migrator: { use: 'prisma', seed: 'node prisma/seed.mjs' },
-  datasource: { use: 'postgres', admin: env('BRANCHLY_DATABASE_URL'), prefix: 'e2e' },
+  datasource: { use: 'postgres', url: env('DATABASE_URL'), prefix: 'e2e' },
   resolver: { use: 'env-file', file: '.env', key: 'DATABASE_URL' },
   protect: ['main'],
   cache: { enabled: true, max: 10, base: 'main' },
@@ -43,8 +43,11 @@ export default defineConfig({
 
 const packs: { dir: string; tarballs: string[] } = { dir: '', tarballs: [] };
 
+const fixtureEnv = (): NodeJS.ProcessEnv =>
+  Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== 'DATABASE_URL'));
+
 const run = (command: string, args: readonly string[], cwd: string): Promise<string> =>
-  execFileAsync(command, [...args], { cwd, env: process.env, maxBuffer: 16 * 1024 * 1024 }).then(
+  execFileAsync(command, [...args], { cwd, env: fixtureEnv(), maxBuffer: 16 * 1024 * 1024 }).then(
     ({ stdout }) => stdout,
   );
 
@@ -85,7 +88,7 @@ const writeFixtureFiles = async (fixture: string, admin: string): Promise<void> 
   await writeFile(join(fixture, 'prisma', 'migrations', '20240101000000_init', 'migration.sql'), INIT_SQL, 'utf8');
   await writeFile(join(fixture, 'prisma', 'seed.mjs'), SEED, 'utf8');
   await writeFile(join(fixture, 'branchly.config.ts'), CONFIG, 'utf8');
-  await writeFile(join(fixture, '.env'), `BRANCHLY_DATABASE_URL=${admin}\n`, 'utf8');
+  await writeFile(join(fixture, '.env'), `DATABASE_URL=${admin}\n`, 'utf8');
   await writeFile(join(fixture, '.gitignore'), 'node_modules\n.env\n.branchly\n', 'utf8');
 };
 

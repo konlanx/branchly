@@ -11,8 +11,7 @@ import { detectPackageManager, installArgs, type PackageManager } from '../init/
 import { resolvePluginName } from '../loader/name';
 import type { Reporter } from '../runtime/reporter';
 
-const ADMIN_ENV = 'BRANCHLY_DATABASE_URL';
-const APP_ENV = 'DATABASE_URL';
+const DATABASE_URL_ENV = 'DATABASE_URL';
 const VCS = 'git';
 
 export type Installer = (command: string, args: readonly string[], cwd: string) => Promise<void>;
@@ -112,12 +111,12 @@ export const runInit = async (options: InitOptions): Promise<void> => {
     reporter.step(`skipped install — run: ${manager} ${installArgs(manager, packages).join(' ')}`);
   }
 
-  const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, adminEnv: ADMIN_ENV, appEnv: APP_ENV }));
+  const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, databaseUrlEnv: DATABASE_URL_ENV }));
   await updateGitignore(cwd);
   const hook = await installPostCheckoutHook(cwd);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
   reporter.step('gitignore: .env is covered (branchly keeps its state in .git)');
   reporter.step(`git hook:  ${describeHook(cwd, hook)}`);
-  reporter.step(`next:      set ${ADMIN_ENV} to your admin Postgres connection (in .env, Doppler, etc.)`);
+  reporter.step(`next:      nothing! branchly reuses your existing ${DATABASE_URL_ENV} (.env, Doppler, etc.) 🌱`);
   reporter.outro('branchly is set up — happy branching! 🎉');
 };

@@ -7,7 +7,7 @@ import { type AdapterLoader, loadPlugins } from './plugins';
 const config: BranchlyConfig = {
   vcs: 'git',
   migrator: { use: 'prisma', migrationsDir: 'prisma/migrations' },
-  datasource: { use: 'postgres', admin: env('DATABASE_URL'), prefix: 'app' },
+  datasource: { use: 'postgres', url: env('DATABASE_URL'), prefix: 'app' },
   resolver: { use: 'env-file', file: '.env' },
   protect: ['main'],
   cache: { enabled: true, max: 10, base: 'main' },
@@ -36,7 +36,7 @@ describe('loadPlugins', () => {
     ]);
     expect(calls.find((call) => call.name === '@branchly/vcs-git')?.options).toEqual({ cwd: '/repo' });
     expect(calls.find((call) => call.name === '@branchly/datasource-postgres')?.options).toEqual({
-      admin: 'postgres://here/db',
+      url: 'postgres://here/db',
       prefix: 'app',
       cwd: '/repo',
     });

@@ -15,12 +15,12 @@ if (adminUrl === undefined || adminUrl.length === 0) {
     });
   });
 } else {
-  const admin = adminUrl;
+  const url = adminUrl;
   const uniquePrefix = (): string => `branchly_test_${Math.random().toString(16).slice(2, 10)}`;
   describeDatasourceAdapter({
     label: 'postgres',
     create: () => {
-      const datasource = createPostgresDatasource({ admin, prefix: uniquePrefix() });
+      const datasource = createPostgresDatasource({ url, prefix: uniquePrefix() });
       const cleanup = async (): Promise<void> => {
         const keys = await datasource.list();
         await Promise.all(keys.map((key) => datasource.destroy(key)));

@@ -11,7 +11,7 @@ export interface AdapterConfig {
 }
 
 export interface DatasourceConfig extends AdapterConfig {
-  readonly admin?: string | EnvRef;
+  readonly url?: string | EnvRef;
 }
 
 export interface CacheConfig {
