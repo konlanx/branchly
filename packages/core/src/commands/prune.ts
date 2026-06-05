@@ -1,8 +1,9 @@
 import { selectPrunable } from '../kernel/prune';
 import { loadConfig } from '../loader/config';
-import { type ManifestEntry, manifestPath, readManifest, removeEntry, writeManifest } from '../manifest';
+import { type ManifestEntry, readManifest, removeEntry, writeManifest } from '../manifest';
 import { type AdapterLoader, loadPlugins } from '../runtime/plugins';
 import type { Reporter } from '../runtime/reporter';
+import { resolveManifestPath } from '../runtime/state';
 
 export interface PruneOptions {
   readonly cwd: string;
@@ -21,7 +22,7 @@ const describeDryRun = (reporter: Reporter, prunable: readonly ManifestEntry[]):
 export const runPrune = async (options: PruneOptions): Promise<void> => {
   const config = await loadConfig(options.cwd);
   const plugins = await loadPlugins(config, { cwd: options.cwd, load: options.load });
-  const path = manifestPath(options.cwd);
+  const path = await resolveManifestPath(plugins.vcs, options.cwd);
   const manifest = await readManifest(path);
   options.reporter.intro('branchly prune');
 

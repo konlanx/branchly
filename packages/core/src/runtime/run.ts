@@ -1,8 +1,9 @@
 import { provision, type ProvisionResult } from '../kernel/provision';
 import { loadConfig } from '../loader/config';
-import { manifestPath, readManifest, writeManifest } from '../manifest';
+import { readManifest, writeManifest } from '../manifest';
 import { type AdapterLoader, loadPlugins } from './plugins';
 import { narrateEvent, type Reporter } from './reporter';
+import { resolveManifestPath } from './state';
 
 export interface ProvisionRunOptions {
   readonly cwd: string;
@@ -16,7 +17,7 @@ const defaultNow = (): string => new Date().toISOString();
 export const provisionCurrent = async (options: ProvisionRunOptions): Promise<ProvisionResult> => {
   const config = await loadConfig(options.cwd);
   const plugins = await loadPlugins(config, { cwd: options.cwd, load: options.load });
-  const path = manifestPath(options.cwd);
+  const path = await resolveManifestPath(plugins.vcs, options.cwd);
   const manifest = await readManifest(path);
   const result = await provision({
     ...plugins,

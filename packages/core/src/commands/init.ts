@@ -5,7 +5,6 @@ import { renderConfig } from '../init/config-template';
 import { detectStack } from '../init/detect';
 import { ensureIgnored } from '../init/gitignore';
 import { type HookResult, installPostCheckoutHook } from '../init/hook';
-import { MANIFEST_DIR } from '../manifest';
 import type { Reporter } from '../runtime/reporter';
 
 const ADMIN_ENV = 'BRANCHLY_DATABASE_URL';
@@ -47,7 +46,7 @@ const updateGitignore = async (cwd: string): Promise<void> => {
     (content) => content,
     () => '',
   );
-  await writeFile(path, ensureIgnored(existing, [`${MANIFEST_DIR}/`, '.env']), 'utf8');
+  await writeFile(path, ensureIgnored(existing, ['.env']), 'utf8');
 };
 
 export const runInit = async (options: InitOptions): Promise<void> => {
@@ -59,7 +58,7 @@ export const runInit = async (options: InitOptions): Promise<void> => {
   const hook = await installPostCheckoutHook(cwd);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
   reporter.step(`detected:  ${detected.migrator} + ${detected.datasource} + ${detected.resolver}`);
-  reporter.step(`gitignore: ${MANIFEST_DIR}/ and .env are covered`);
+  reporter.step('gitignore: .env is covered (branchly keeps its state in .git)');
   reporter.step(`git hook:  ${describeHook(cwd, hook)}`);
   reporter.step(`next:      set ${ADMIN_ENV} to your admin Postgres connection (in .env, Doppler, etc.)`);
   reporter.outro('branchly is set up — happy branching! 🎉');

@@ -25,15 +25,21 @@ describe('hookCommand', () => {
 
 describe('hookTarget', () => {
   it('uses .git/hooks when no hooks path is set', () => {
-    expect(hookTarget('/repo', null)).toEqual({ path: '/repo/.git/hooks/post-checkout', managed: false });
+    expect(hookTarget('/repo', null)).toEqual({
+      path: join('/repo', '.git', 'hooks', 'post-checkout'),
+      managed: false,
+    });
   });
 
   it('uses .husky for a husky hooks path', () => {
-    expect(hookTarget('/repo', '.husky/_')).toEqual({ path: '/repo/.husky/post-checkout', managed: true });
+    expect(hookTarget('/repo', '.husky/_')).toEqual({ path: join('/repo', '.husky', 'post-checkout'), managed: true });
   });
 
   it('uses a custom relative hooks path', () => {
-    expect(hookTarget('/repo', 'config/hooks')).toEqual({ path: '/repo/config/hooks/post-checkout', managed: false });
+    expect(hookTarget('/repo', 'config/hooks')).toEqual({
+      path: join('/repo', 'config', 'hooks', 'post-checkout'),
+      managed: false,
+    });
   });
 });
 

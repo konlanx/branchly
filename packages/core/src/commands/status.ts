@@ -1,8 +1,9 @@
 import { keyForRef } from '../kernel/identity';
 import { loadConfig } from '../loader/config';
-import { manifestPath, readManifest } from '../manifest';
+import { readManifest } from '../manifest';
 import { type AdapterLoader, loadPlugins } from '../runtime/plugins';
 import type { Reporter } from '../runtime/reporter';
+import { resolveManifestPath } from '../runtime/state';
 
 export interface StatusOptions {
   readonly cwd: string;
@@ -15,7 +16,7 @@ export const runStatus = async (options: StatusOptions): Promise<void> => {
   const plugins = await loadPlugins(config, { cwd: options.cwd, load: options.load });
   const ref = await plugins.vcs.currentRef();
   const fingerprint = await plugins.migrator.fingerprint();
-  const manifest = await readManifest(manifestPath(options.cwd));
+  const manifest = await readManifest(await resolveManifestPath(plugins.vcs, options.cwd));
   const key = keyForRef(manifest, ref, fingerprint);
   const provisioned = await plugins.datasource.exists(key);
   options.reporter.intro('branchly status');

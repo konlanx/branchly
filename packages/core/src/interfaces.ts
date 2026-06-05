@@ -51,4 +51,6 @@ export interface Vcs {
   currentRef(): Promise<string>;
 
   liveRefs?(): Promise<string[]>;
+
+  stateDir?(): Promise<string>;
 }

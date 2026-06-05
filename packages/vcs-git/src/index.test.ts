@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { describe, expect, it } from 'vitest';
@@ -45,6 +45,27 @@ describe('createGitVcs', () => {
       expect(refs).toHaveLength(2);
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves the same state directory from the main worktree and a linked worktree', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'branchly-wt-'));
+    const root = join(base, 'repo');
+    const worktree = join(base, 'wt');
+    try {
+      await mkdir(root, { recursive: true });
+      await git(root, ['init', '-b', 'main']);
+      await git(root, ['commit', '--allow-empty', '-m', 'init']);
+      await git(root, ['worktree', 'add', '-b', 'feature', worktree]);
+
+      const mainState = await createGitVcs({ cwd: root }).stateDir?.();
+      const worktreeState = await createGitVcs({ cwd: worktree }).stateDir?.();
+      if (mainState === undefined || worktreeState === undefined) {
+        throw new Error('stateDir is not implemented');
+      }
+      expect(await realpath(dirname(mainState))).toBe(await realpath(dirname(worktreeState)));
+    } finally {
+      await rm(base, { recursive: true, force: true });
     }
   });
 });

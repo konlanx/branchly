@@ -1,9 +1,10 @@
 import { evictSnapshots } from '../kernel/cache';
 import { slugify } from '../kernel/slug';
 import { loadConfig } from '../loader/config';
-import { manifestPath, readManifest, writeManifest } from '../manifest';
+import { readManifest, writeManifest } from '../manifest';
 import { type AdapterLoader, loadPlugins } from '../runtime/plugins';
 import type { Reporter } from '../runtime/reporter';
+import { resolveManifestPath } from '../runtime/state';
 
 export interface GcOptions {
   readonly cwd: string;
@@ -14,7 +15,7 @@ export interface GcOptions {
 export const runGc = async (options: GcOptions): Promise<void> => {
   const config = await loadConfig(options.cwd);
   const plugins = await loadPlugins(config, { cwd: options.cwd, load: options.load });
-  const path = manifestPath(options.cwd);
+  const path = await resolveManifestPath(plugins.vcs, options.cwd);
   const manifest = await readManifest(path);
   const baseSlug = slugify(config.cache.base);
   const baseFingerprint = manifest.entries.find((entry) => entry.slug === baseSlug)?.fingerprint;

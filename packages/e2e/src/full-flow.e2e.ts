@@ -105,7 +105,7 @@ const dropDatabase = async (admin: string, datname: string): Promise<void> => {
 };
 
 const mainFingerprint = async (fixture: string): Promise<string> => {
-  const content = await readFile(join(fixture, '.branchly', 'manifest.json'), 'utf8');
+  const content = await readFile(join(fixture, '.git', 'branchly', 'manifest.json'), 'utf8');
   const manifest = JSON.parse(content) as { entries: { slug: string; fingerprint: string }[] };
   const entry = manifest.entries.find((item) => item.slug === 'main');
   if (entry === undefined) {
