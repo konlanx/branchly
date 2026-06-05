@@ -1,14 +1,50 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
+import spawn from 'cross-spawn';
+
 import { renderConfig } from '../init/config-template';
-import { detectStack } from '../init/detect';
+import { type DetectedStack, detectStack } from '../init/detect';
 import { ensureIgnored } from '../init/gitignore';
 import { type HookResult, installPostCheckoutHook } from '../init/hook';
+import { detectPackageManager, installArgs, type PackageManager } from '../init/package-manager';
+import { resolvePluginName } from '../loader/name';
 import type { Reporter } from '../runtime/reporter';
 
 const ADMIN_ENV = 'BRANCHLY_DATABASE_URL';
 const APP_ENV = 'DATABASE_URL';
+const VCS = 'git';
+
+export type Installer = (command: string, args: readonly string[], cwd: string) => Promise<void>;
+
+export interface InitOptions {
+  readonly cwd: string;
+  readonly reporter: Reporter;
+  readonly install?: boolean;
+  readonly installer?: Installer;
+}
+
+const defaultInstaller: Installer = (command, args, cwd) =>
+  new Promise<void>((resolve, reject) => {
+    const child = spawn(command, [...args], { cwd, stdio: 'inherit' });
+    child.on('error', (error) => {
+      reject(error);
+    });
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`${command} exited with code ${String(code ?? 0)}`));
+      }
+    });
+  });
+
+const adapterPackages = (detected: DetectedStack): string[] => [
+  resolvePluginName('vcs', VCS),
+  resolvePluginName('migrator', detected.migrator),
+  resolvePluginName('datasource', detected.datasource),
+  resolvePluginName('resolver', detected.resolver),
+];
 
 const describeHook = (cwd: string, hook: HookResult): string => {
   const where = relative(cwd, hook.path);
@@ -21,11 +57,6 @@ const describeHook = (cwd: string, hook: HookResult): string => {
   }
   return `installed at ${where}${doppler} 🪝`;
 };
-
-export interface InitOptions {
-  readonly cwd: string;
-  readonly reporter: Reporter;
-}
 
 const writeConfigFile = async (cwd: string, content: string): Promise<boolean> => {
   const path = join(cwd, 'branchly.config.ts');
@@ -49,15 +80,42 @@ const updateGitignore = async (cwd: string): Promise<void> => {
   await writeFile(path, ensureIgnored(existing, ['.env']), 'utf8');
 };
 
+const installAdapters = async (
+  cwd: string,
+  reporter: Reporter,
+  manager: PackageManager,
+  packages: readonly string[],
+  installer: Installer,
+): Promise<void> => {
+  reporter.step(`installing: ${packages.join(', ')} (with ${manager})`);
+  try {
+    await installer(manager, installArgs(manager, packages), cwd);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'unknown error';
+    reporter.error(
+      `install failed (${detail}) — run it yourself: ${manager} ${installArgs(manager, packages).join(' ')}`,
+    );
+  }
+};
+
 export const runInit = async (options: InitOptions): Promise<void> => {
   const { cwd, reporter } = options;
   reporter.intro('branchly init');
   const detected = await detectStack(cwd);
+  reporter.step(`detected:  ${detected.migrator} + ${detected.datasource} + ${detected.resolver}`);
+
+  const packages = adapterPackages(detected);
+  const manager = await detectPackageManager(cwd);
+  if (options.install ?? true) {
+    await installAdapters(cwd, reporter, manager, packages, options.installer ?? defaultInstaller);
+  } else {
+    reporter.step(`skipped install — run: ${manager} ${installArgs(manager, packages).join(' ')}`);
+  }
+
   const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, adminEnv: ADMIN_ENV, appEnv: APP_ENV }));
   await updateGitignore(cwd);
   const hook = await installPostCheckoutHook(cwd);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
-  reporter.step(`detected:  ${detected.migrator} + ${detected.datasource} + ${detected.resolver}`);
   reporter.step('gitignore: .env is covered (branchly keeps its state in .git)');
   reporter.step(`git hook:  ${describeHook(cwd, hook)}`);
   reporter.step(`next:      set ${ADMIN_ENV} to your admin Postgres connection (in .env, Doppler, etc.)`);

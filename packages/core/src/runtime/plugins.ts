@@ -11,7 +11,7 @@ export interface Plugins {
   readonly resolver: ConnectionResolver;
 }
 
-export type AdapterLoader = (packageName: string, options: Record<string, unknown>) => Promise<unknown>;
+export type AdapterLoader = (packageName: string, options: Record<string, unknown>, cwd: string) => Promise<unknown>;
 
 export interface LoadPluginsDeps {
   readonly cwd: string;
@@ -31,10 +31,10 @@ export const loadPlugins = async (config: BranchlyConfig, deps: LoadPluginsDeps)
   const load = deps.load ?? loadAdapter;
   const { cwd } = deps;
   const [vcs, migrator, datasource, resolver] = await Promise.all([
-    load(resolvePluginName('vcs', config.vcs), { cwd }),
-    load(resolvePluginName('migrator', config.migrator.use), adapterOptions(config.migrator, cwd)),
-    load(resolvePluginName('datasource', config.datasource.use), adapterOptions(config.datasource, cwd)),
-    load(resolvePluginName('resolver', config.resolver.use), adapterOptions(config.resolver, cwd)),
+    load(resolvePluginName('vcs', config.vcs), { cwd }, cwd),
+    load(resolvePluginName('migrator', config.migrator.use), adapterOptions(config.migrator, cwd), cwd),
+    load(resolvePluginName('datasource', config.datasource.use), adapterOptions(config.datasource, cwd), cwd),
+    load(resolvePluginName('resolver', config.resolver.use), adapterOptions(config.resolver, cwd), cwd),
   ]);
   return {
     vcs: vcs as Vcs,

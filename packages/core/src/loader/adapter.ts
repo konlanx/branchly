@@ -1,6 +1,18 @@
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 const SUPPORTED_API_VERSION = 1;
 
 type AdapterFactory = (options: Record<string, unknown>) => unknown;
+
+const resolveFromProject = (packageName: string, cwd: string): string | null => {
+  try {
+    return createRequire(join(cwd, 'package.json')).resolve(packageName);
+  } catch {
+    return null;
+  }
+};
 
 export const selectDefaultFactory = (imported: unknown, packageName: string): AdapterFactory => {
   const factory = (imported as { default?: unknown }).default;
@@ -26,8 +38,11 @@ export const assertApiVersion = (adapter: unknown, packageName: string): void =>
 export const loadAdapter = async <TAdapter>(
   packageName: string,
   options: Record<string, unknown>,
+  cwd: string,
 ): Promise<TAdapter> => {
-  const imported: unknown = await import(packageName);
+  const resolved = resolveFromProject(packageName, cwd);
+  const specifier = resolved === null ? packageName : pathToFileURL(resolved).href;
+  const imported: unknown = await import(specifier);
   const factory = selectDefaultFactory(imported, packageName);
   const adapter = factory(options);
   assertApiVersion(adapter, packageName);

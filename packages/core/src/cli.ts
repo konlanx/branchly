@@ -47,7 +47,7 @@ const dispatch = (
   cwd: string,
 ): Promise<void> => {
   if (command === 'init') {
-    return runInit({ cwd, reporter });
+    return runInit({ cwd, reporter, install: !args.includes('--no-install') });
   }
   if (command === 'sync') {
     return runSync({ cwd, reporter });
