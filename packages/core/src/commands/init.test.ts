@@ -18,7 +18,7 @@ describe('runInit', () => {
         return Promise.resolve();
       };
 
-      await runInit({ cwd: root, reporter: createReporter({ quiet: true }), installer });
+      await runInit({ cwd: root, reporter: createReporter({ quiet: true }), installer, env: {} });
 
       expect(calls).toHaveLength(1);
       expect(calls[0]?.command).toBe('npm');
@@ -34,6 +34,29 @@ describe('runInit', () => {
       expect(await readFile(join(root, '.gitignore'), 'utf8')).toContain('.env');
       expect(await readFile(join(root, '.git', 'hooks', 'post-checkout'), 'utf8')).toContain('branchly on-checkout');
       expect(await readFile(join(root, '.git', 'hooks', 'post-merge'), 'utf8')).toContain('branchly post-merge');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('installs the mysql adapter and writes a mysql config when the database url is a mysql url', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'branchly-init-'));
+    try {
+      const calls: { command: string; args: readonly string[] }[] = [];
+      const installer: Installer = (command, args) => {
+        calls.push({ command, args });
+        return Promise.resolve();
+      };
+
+      await runInit({
+        cwd: root,
+        reporter: createReporter({ quiet: true }),
+        installer,
+        env: { DATABASE_URL: 'mysql://root:pw@localhost:3306/app' },
+      });
+
+      expect(calls[0]?.args).toContain('@branchly/datasource-mysql');
+      expect(await readFile(join(root, 'branchly.config.ts'), 'utf8')).toContain("use: 'mysql'");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -20,6 +20,17 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -uroot -pmysql --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -48,6 +59,7 @@ jobs:
         run: pnpm run test
         env:
           BRANCHLY_TEST_PG_URL: postgres://postgres:postgres@localhost:5432/postgres
+          BRANCHLY_TEST_MYSQL_URL: mysql://root:mysql@localhost:3306/
 
       - name: Build
         run: pnpm run build

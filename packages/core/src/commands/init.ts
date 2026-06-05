@@ -5,13 +5,13 @@ import spawn from 'cross-spawn';
 
 import { renderConfig } from '../init/config-template';
 import { type DetectedStack, detectStack } from '../init/detect';
+import { DATABASE_URL_ENV } from '../init/detect-datasource';
 import { ensureIgnored } from '../init/gitignore';
 import { type HookResult, installHook, POST_CHECKOUT_HOOK, POST_MERGE_HOOK } from '../init/hook';
 import { detectPackageManager, installArgs, type PackageManager } from '../init/package-manager';
 import { resolvePluginName } from '../loader/name';
 import type { Reporter } from '../runtime/reporter';
 
-const DATABASE_URL_ENV = 'DATABASE_URL';
 const VCS = 'git';
 
 export type Installer = (command: string, args: readonly string[], cwd: string) => Promise<void>;
@@ -21,6 +21,7 @@ export interface InitOptions {
   readonly reporter: Reporter;
   readonly install?: boolean;
   readonly installer?: Installer;
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 const defaultInstaller: Installer = (command, args, cwd) =>
@@ -103,7 +104,7 @@ const installAdapters = async (
 export const runInit = async (options: InitOptions): Promise<void> => {
   const { cwd, reporter } = options;
   reporter.intro('branchly init');
-  const detected = await detectStack(cwd);
+  const detected = await detectStack(cwd, options.env);
   reporter.step(`detected:  ${detected.migrator} + ${detected.datasource} + ${detected.resolver}`);
 
   const packages = adapterPackages(detected);

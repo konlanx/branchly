@@ -32,7 +32,18 @@ describe('detectStack', () => {
   it('falls back to sensible defaults', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-detect-'));
     try {
-      expect(await detectStack(root)).toEqual({ migrator: 'prisma', datasource: 'postgres', resolver: 'env-file' });
+      expect(await detectStack(root, {})).toEqual({ migrator: 'prisma', datasource: 'postgres', resolver: 'env-file' });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('detects the full stack from a prisma schema with a mysql provider', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'branchly-detect-'));
+    try {
+      await mkdir(join(root, 'prisma'), { recursive: true });
+      await writeFile(join(root, 'prisma', 'schema.prisma'), 'datasource db {\n  provider = "mysql"\n}\n', 'utf8');
+      expect(await detectStack(root, {})).toEqual({ migrator: 'prisma', datasource: 'mysql', resolver: 'env-file' });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
