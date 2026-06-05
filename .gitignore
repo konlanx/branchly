@@ -19,3 +19,7 @@ coverage/
 
 # branchly local state (see IMPLEMENTATION_GUIDE.md §4 — Manifest)
 .branchly/
+
+# Synced into packages at pack time from the repo root (see scripts/sync-readme.mjs)
+packages/*/README.md
+packages/*/LICENSE

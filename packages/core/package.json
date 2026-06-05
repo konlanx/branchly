@@ -1,6 +1,6 @@
 {
   "name": "branchly",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Keep each VCS branch paired with its own database state.",
   "license": "MIT",
   "type": "module",
@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepack": "node ../../scripts/sync-readme.mjs"
   },
   "dependencies": {
     "@clack/prompts": "^1.5.1",

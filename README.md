@@ -2,6 +2,10 @@
 
 > Give every Git branch its own database. Switch branches, and your data follows.
 
+[![npm](https://img.shields.io/npm/v/branchly.svg)](https://www.npmjs.com/package/branchly)
+[![CI](https://github.com/konlanx/branchly/actions/workflows/ci.yml/badge.svg)](https://github.com/konlanx/branchly/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 When your branches carry different migrations, a single shared development database is constantly out of step with whatever you have checked out, so your migration tool resets it and your data is gone. **branchly** gives each branch its own isolated database and keeps them in sync for you: the first time you visit a branch it provisions one (create → migrate → seed), every later visit is instant, and it all happens on `git checkout`, so most of the time you do nothing at all.
 
 It's local-first and plugin-based, so it isn't tied to a single stack. Out of the box it speaks **Git**, **Prisma**, **PostgreSQL**, and your **`.env`** file, with SQLite, Drizzle, and direnv adapters alongside, and room for more.
@@ -75,7 +79,7 @@ If you would like to expand this list, we would love your contribution!
 branchly is a pnpm + TypeScript monorepo.
 
 ```sh
-git clone https://github.com/branchly/branchly.git
+git clone https://github.com/konlanx/branchly.git
 cd branchly
 pnpm install
 pnpm build      # build every package
@@ -104,15 +108,10 @@ Then, in **your project**, install the tarballs as dev dependencies. With npm or
 npm install --save-dev /tmp/branchly-packs/*.tgz
 ```
 
-Yarn doesn't expand globs, so list them explicitly:
+Yarn doesn't expand globs itself, so let your shell do it:
 
 ```sh
-yarn add -D \
-  /tmp/branchly-packs/branchly-0.1.0.tgz \
-  /tmp/branchly-packs/branchly-vcs-git-0.1.0.tgz \
-  /tmp/branchly-packs/branchly-migrator-prisma-0.1.0.tgz \
-  /tmp/branchly-packs/branchly-datasource-postgres-0.1.0.tgz \
-  /tmp/branchly-packs/branchly-resolver-env-file-0.1.0.tgz
+yarn add -D $(ls /tmp/branchly-packs/*.tgz)
 ```
 
 Finally, set it up. Use `--no-install`, since `init` can't fetch the unpublished adapters from a
