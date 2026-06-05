@@ -1,0 +1,28 @@
+{
+  "name": "@branchly/docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Documentation site for branchly.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/starlight": "^0.36.0",
+    "astro": "^5.0.0",
+    "sharp": "^0.34.0",
+    "typescript": "5.9.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konlanx/branchly.git",
+    "directory": "packages/docs"
+  },
+  "homepage": "https://konlanx.github.io/branchly",
+  "bugs": "https://github.com/konlanx/branchly/issues"
+}

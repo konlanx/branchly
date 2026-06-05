@@ -6,7 +6,7 @@ import { config, configs } from 'typescript-eslint';
 
 export default config(
   {
-    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**'],
+    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', 'packages/docs/.astro/**'],
   },
   js.configs.recommended,
   ...configs.strictTypeChecked,
@@ -64,6 +64,13 @@ export default config(
   {
     files: ['**/*.{js,mjs,cjs}'],
     extends: [configs.disableTypeChecked],
+  },
+  {
+    files: ['packages/docs/**/*.ts'],
+    extends: [configs.disableTypeChecked],
+    settings: {
+      'import-x/core-modules': ['astro:content'],
+    },
   },
   eslintPluginPrettierRecommended,
 );
