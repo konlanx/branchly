@@ -1,5 +1,8 @@
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
+import process from 'node:process';
+
+import { detectDatasource } from './detect-datasource';
 
 export interface DetectedStack {
   readonly migrator: string;
@@ -25,8 +28,8 @@ export const detectMigrator = async (cwd: string): Promise<string | null> => {
   return checks.find((check) => check.found)?.use ?? null;
 };
 
-export const detectStack = async (cwd: string): Promise<DetectedStack> => ({
+export const detectStack = async (cwd: string, env: NodeJS.ProcessEnv = process.env): Promise<DetectedStack> => ({
   migrator: (await detectMigrator(cwd)) ?? 'prisma',
-  datasource: 'postgres',
+  datasource: await detectDatasource(cwd, env),
   resolver: 'env-file',
 });

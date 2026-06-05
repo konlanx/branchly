@@ -5,13 +5,23 @@ export interface ConfigTemplateInput {
   readonly databaseUrlEnv: string;
 }
 
+const usesDatabaseUrl = (input: ConfigTemplateInput): boolean => input.datasource !== 'sqlite';
+
+const importLine = (input: ConfigTemplateInput): string =>
+  usesDatabaseUrl(input) ? `import { defineConfig, env } from 'branchly';` : `import { defineConfig } from 'branchly';`;
+
+const datasourceLine = (input: ConfigTemplateInput): string =>
+  usesDatabaseUrl(input)
+    ? `datasource: { use: '${input.datasource}', url: env('${input.databaseUrlEnv}'), prefix: 'app' },`
+    : `datasource: { use: '${input.datasource}' },`;
+
 export const renderConfig = (input: ConfigTemplateInput): string =>
-  `import { defineConfig, env } from 'branchly';
+  `${importLine(input)}
 
 export default defineConfig({
   vcs: 'git',
   migrator: { use: '${input.migrator}' },
-  datasource: { use: '${input.datasource}', url: env('${input.databaseUrlEnv}'), prefix: 'app' },
+  ${datasourceLine(input)}
   resolver: { use: '${input.resolver}', file: '.env', key: '${input.databaseUrlEnv}' },
   protect: ['main', 'master', 'production'],
   cache: { enabled: true, max: 10, base: 'main' },
