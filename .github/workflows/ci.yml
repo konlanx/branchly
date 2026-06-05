@@ -78,6 +78,17 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -uroot -pmysql --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -93,10 +104,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: End-to-end (real CLI + Prisma + Postgres)
+      - name: End-to-end (real CLI · prisma+postgres, prisma+mysql, knex+postgres)
         run: pnpm --filter @branchly/e2e run test:e2e
         env:
           BRANCHLY_TEST_PG_URL: postgres://postgres:postgres@localhost:5432/postgres
+          BRANCHLY_TEST_MYSQL_URL: mysql://root:mysql@localhost:3306/
 
   windows:
     runs-on: windows-latest
