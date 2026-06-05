@@ -1,6 +1,6 @@
 {
   "name": "@branchly/datasource-sqlite",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reference SQLite datasource adapter for branchly (file-per-branch).",
   "license": "MIT",
   "type": "module",
@@ -31,5 +31,12 @@
         "default": "./dist/index.js"
       }
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konlanx/branchly.git",
+    "directory": "packages/datasource-sqlite"
+  },
+  "homepage": "https://github.com/konlanx/branchly#readme",
+  "bugs": "https://github.com/konlanx/branchly/issues"
 }

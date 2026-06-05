@@ -1,6 +1,6 @@
 {
   "name": "@branchly/migrator-prisma",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reference Prisma migrator adapter for branchly.",
   "license": "MIT",
   "type": "module",
@@ -30,5 +30,12 @@
         "default": "./dist/index.js"
       }
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konlanx/branchly.git",
+    "directory": "packages/migrator-prisma"
+  },
+  "homepage": "https://github.com/konlanx/branchly#readme",
+  "bugs": "https://github.com/konlanx/branchly/issues"
 }

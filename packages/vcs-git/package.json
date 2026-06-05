@@ -1,6 +1,6 @@
 {
   "name": "@branchly/vcs-git",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reference git VCS adapter for branchly.",
   "license": "MIT",
   "type": "module",
@@ -30,5 +30,12 @@
         "default": "./dist/index.js"
       }
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konlanx/branchly.git",
+    "directory": "packages/vcs-git"
+  },
+  "homepage": "https://github.com/konlanx/branchly#readme",
+  "bugs": "https://github.com/konlanx/branchly/issues"
 }

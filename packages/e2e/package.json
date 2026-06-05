@@ -1,6 +1,6 @@
 {
   "name": "@branchly/e2e",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,5 +10,12 @@
   "devDependencies": {
     "@types/pg": "^8.11.10",
     "pg": "^8.13.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konlanx/branchly.git",
+    "directory": "packages/e2e"
+  },
+  "homepage": "https://github.com/konlanx/branchly#readme",
+  "bugs": "https://github.com/konlanx/branchly/issues"
 }
