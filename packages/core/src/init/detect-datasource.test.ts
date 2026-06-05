@@ -70,6 +70,12 @@ describe('detectDatasource', () => {
       expect(await detectDatasource(root, {})).toBe('mysql');
     }));
 
+  it('reads the client from a typescript knexfile', () =>
+    withProjectDir(async (root) => {
+      await writeFile(join(root, 'knexfile.ts'), "export default { client: 'pg' };\n", 'utf8');
+      expect(await detectDatasource(root, {})).toBe('postgres');
+    }));
+
   it('falls back to the orm config when the connection string scheme is unknown', () =>
     withProjectDir(async (root) => {
       await writePrismaSchema(root, 'mysql');

@@ -135,6 +135,15 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/migrator-knex:
+    devDependencies:
+      '@branchly/adapter-test-kit':
+        specifier: workspace:*
+        version: link:../adapter-test-kit
+      branchly:
+        specifier: workspace:*
+        version: link:../core
+
   packages/migrator-prisma:
     devDependencies:
       branchly:

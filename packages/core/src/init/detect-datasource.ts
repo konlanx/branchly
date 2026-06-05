@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
 
+import { KNEXFILE_VARIANTS } from './knexfile-variants';
+
 export const DATABASE_URL_ENV = 'DATABASE_URL';
 
 const SCHEME_DATASOURCES: Readonly<Record<string, string>> = {
@@ -33,7 +35,7 @@ interface ProviderMarker {
 const PROVIDER_MARKERS: readonly ProviderMarker[] = [
   { file: 'prisma/schema.prisma', pattern: /datasource\s+\w+\s*\{[^}]*provider\s*=\s*"([^"]+)"/ },
   { file: 'drizzle.config.ts', pattern: /dialect:\s*['"]([^'"]+)['"]/ },
-  { file: 'knexfile.js', pattern: /client:\s*['"]([^'"]+)['"]/ },
+  ...KNEXFILE_VARIANTS.map((file) => ({ file, pattern: /client:\s*['"]([^'"]+)['"]/ })),
 ];
 
 const schemeOf = (connection: string): string | null => {
