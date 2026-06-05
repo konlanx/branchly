@@ -1,0 +1,42 @@
+{
+  "name": "@branchly/migrator-knex",
+  "version": "0.1.5",
+  "description": "Reference Knex migrator adapter for branchly.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@branchly/adapter-test-kit": "workspace:*",
+    "branchly": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konlanx/branchly.git",
+    "directory": "packages/migrator-knex"
+  },
+  "homepage": "https://github.com/konlanx/branchly#readme",
+  "bugs": "https://github.com/konlanx/branchly/issues"
+}

@@ -18,6 +18,16 @@ describe('detectMigrator', () => {
     }
   });
 
+  it('detects knex from a knexfile in any supported flavor', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'branchly-detect-'));
+    try {
+      await writeFile(join(root, 'knexfile.ts'), "export default { client: 'pg' };\n", 'utf8');
+      expect(await detectMigrator(root)).toBe('knex');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('returns null when no migrator is detected', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-detect-'));
     try {

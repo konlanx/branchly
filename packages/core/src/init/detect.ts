@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import process from 'node:process';
 
 import { detectDatasource } from './detect-datasource';
+import { KNEXFILE_VARIANTS } from './knexfile-variants';
 
 export interface DetectedStack {
   readonly migrator: string;
@@ -13,7 +14,7 @@ export interface DetectedStack {
 const MIGRATOR_MARKERS = [
   { file: 'prisma/schema.prisma', use: 'prisma' },
   { file: 'drizzle.config.ts', use: 'drizzle' },
-  { file: 'knexfile.js', use: 'knex' },
+  ...KNEXFILE_VARIANTS.map((file) => ({ file, use: 'knex' })),
 ];
 
 const fileExists = (path: string): Promise<boolean> =>

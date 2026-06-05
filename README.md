@@ -8,7 +8,7 @@
 
 When your branches carry different migrations, a single shared development database is constantly out of step with whatever you have checked out, so your migration tool resets it and your data is gone. **branchly** gives each branch its own isolated database and keeps them in sync for you: the first time you visit a branch it provisions one (create → migrate → seed), every later visit is instant, and it all happens on `git checkout`, so most of the time you do nothing at all.
 
-It's local-first and plugin-based, so it isn't tied to a single stack. Out of the box it speaks **Git**, **Prisma**, **PostgreSQL**, and your **`.env`** file, with MySQL, SQLite, Drizzle, and direnv adapters alongside, and room for more.
+It's local-first and plugin-based, so it isn't tied to a single stack. Out of the box it speaks **Git**, **Prisma**, **PostgreSQL**, and your **`.env`** file, with MySQL, SQLite, Drizzle, Knex, and direnv adapters alongside, and room for more.
 
 ## Installation
 
@@ -67,7 +67,7 @@ After `init`, branchly runs automatically on every `git checkout`, so you'll rar
 | Database         | Neon       | 🔜 Planned   |
 | ORM / migrations | Prisma     | ✅ Supported |
 | ORM / migrations | Drizzle    | ✅ Supported |
-| ORM / migrations | Knex       | 🔜 Planned   |
+| ORM / migrations | Knex       | ✅ Supported |
 
 If you would like to expand this list, we would love your contribution!
 
@@ -96,7 +96,7 @@ for pkg in core vcs-git migrator-prisma datasource-postgres resolver-env-file; d
 done
 ```
 
-(Add `migrator-drizzle`, `datasource-mysql`, `datasource-sqlite`, or `resolver-direnv` to that list
+(Add `migrator-drizzle`, `migrator-knex`, `datasource-mysql`, `datasource-sqlite`, or `resolver-direnv` to that list
 if your stack needs them.)
 
 Then, in **your project**, install the tarballs as dev dependencies. With npm or pnpm a glob works:
