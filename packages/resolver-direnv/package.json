@@ -1,6 +1,6 @@
 {
   "name": "@branchly/resolver-direnv",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Reference direnv (.envrc) connection resolver for branchly.",
   "license": "MIT",
   "type": "module",
