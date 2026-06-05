@@ -1,6 +1,6 @@
 {
   "name": "@branchly/migrator-prisma",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reference Prisma migrator adapter for branchly.",
   "license": "MIT",
   "type": "module",

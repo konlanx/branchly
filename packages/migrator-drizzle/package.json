@@ -1,6 +1,6 @@
 {
   "name": "@branchly/migrator-drizzle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reference Drizzle migrator adapter for branchly.",
   "license": "MIT",
   "type": "module",

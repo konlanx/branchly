@@ -1,6 +1,6 @@
 {
   "name": "@branchly/datasource-sqlite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reference SQLite datasource adapter for branchly (file-per-branch).",
   "license": "MIT",
   "type": "module",
