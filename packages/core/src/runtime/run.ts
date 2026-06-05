@@ -1,6 +1,7 @@
 import { provision, type ProvisionResult } from '../kernel/provision';
 import { loadConfig } from '../loader/config';
 import { readManifest, writeManifest } from '../manifest';
+import { defaultNow } from './now';
 import { type AdapterLoader, loadPlugins } from './plugins';
 import { narrateEvent, type Reporter } from './reporter';
 import { resolveManifestPath } from './state';
@@ -11,8 +12,6 @@ export interface ProvisionRunOptions {
   readonly now?: () => string;
   readonly load?: AdapterLoader;
 }
-
-const defaultNow = (): string => new Date().toISOString();
 
 export const provisionCurrent = async (options: ProvisionRunOptions): Promise<ProvisionResult> => {
   const config = await loadConfig(options.cwd);
@@ -28,8 +27,6 @@ export const provisionCurrent = async (options: ProvisionRunOptions): Promise<Pr
       narrateEvent(options.reporter, event);
     },
   });
-  if (result.outcome !== 'fast-path') {
-    await writeManifest(path, result.manifest);
-  }
+  await writeManifest(path, result.manifest);
   return result;
 };

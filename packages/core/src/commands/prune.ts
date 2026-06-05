@@ -1,6 +1,11 @@
+import type { BranchlyConfig } from '../config';
+import type { Vcs } from '../interfaces';
+import { dropEntries } from './drop';
 import { selectPrunable } from '../kernel/prune';
+import { resolvePrunePolicy, selectStale } from '../kernel/sweep';
 import { loadConfig } from '../loader/config';
-import { type ManifestEntry, readManifest, removeEntry, writeManifest } from '../manifest';
+import { type ManifestEntry, readManifest, writeManifest } from '../manifest';
+import { defaultNow } from '../runtime/now';
 import { type AdapterLoader, loadPlugins } from '../runtime/plugins';
 import type { Reporter } from '../runtime/reporter';
 import { resolveManifestPath } from '../runtime/state';
@@ -9,7 +14,9 @@ export interface PruneOptions {
   readonly cwd: string;
   readonly reporter: Reporter;
   readonly force: boolean;
+  readonly stale?: boolean;
   readonly load?: AdapterLoader;
+  readonly now?: () => string;
 }
 
 const describeDryRun = (reporter: Reporter, prunable: readonly ManifestEntry[]): void => {
@@ -17,6 +24,24 @@ const describeDryRun = (reporter: Reporter, prunable: readonly ManifestEntry[]):
     reporter.step(`would drop ${entry.key} (branch "${entry.ref}")`);
   });
   reporter.outro(`${String(prunable.length)} database(s) can be pruned — re-run with --force to drop them.`);
+};
+
+interface StaleQuery {
+  readonly options: PruneOptions;
+  readonly config: BranchlyConfig;
+  readonly vcs: Vcs;
+  readonly entries: readonly ManifestEntry[];
+  readonly liveRefs: readonly string[];
+}
+
+const selectStaleWhenRequested = async (query: StaleQuery): Promise<readonly ManifestEntry[]> => {
+  if (query.options.stale !== true) {
+    return [];
+  }
+  const now = query.options.now ?? defaultNow;
+  const currentRef = await query.vcs.currentRef();
+  const maxAgeMs = resolvePrunePolicy(query.config.prune).maxAgeMs;
+  return selectStale(query.entries, query.liveRefs, query.config.protect, currentRef, now(), maxAgeMs);
 };
 
 export const runPrune = async (options: PruneOptions): Promise<void> => {
@@ -32,7 +57,15 @@ export const runPrune = async (options: PruneOptions): Promise<void> => {
     return;
   }
 
-  const prunable = selectPrunable(manifest.entries, liveRefs, config.protect);
+  const dead = selectPrunable(manifest.entries, liveRefs, config.protect);
+  const stale = await selectStaleWhenRequested({
+    options,
+    config,
+    vcs: plugins.vcs,
+    entries: manifest.entries,
+    liveRefs,
+  });
+  const prunable = [...dead, ...stale];
   if (prunable.length === 0) {
     options.reporter.outro('Nothing to prune — every provisioned branch is still alive 🌿');
     return;
@@ -42,12 +75,7 @@ export const runPrune = async (options: PruneOptions): Promise<void> => {
     return;
   }
 
-  const next = await prunable.reduce(async (previous, entry) => {
-    const current = await previous;
-    await plugins.datasource.destroy(entry.key);
-    options.reporter.step(`dropped ${entry.key} (branch "${entry.ref}")`);
-    return removeEntry(current, entry.key);
-  }, Promise.resolve(manifest));
+  const next = await dropEntries(plugins.datasource, options.reporter, prunable, manifest);
   await writeManifest(path, next);
   options.reporter.outro(`Pruned ${String(prunable.length)} database(s) 🧹`);
 };

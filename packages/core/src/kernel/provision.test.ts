@@ -120,7 +120,14 @@ describe('provision', () => {
     expect(migrator.seed).toHaveBeenCalledWith('conn://feature_x__fp1');
     expect(datasource.clone).not.toHaveBeenCalled();
     expect(result.manifest.entries).toEqual([
-      { key: 'feature_x__fp1', ref: 'feature/x', slug: 'feature_x', fingerprint: 'fp1', createdAt: 'ts' },
+      {
+        key: 'feature_x__fp1',
+        ref: 'feature/x',
+        slug: 'feature_x',
+        fingerprint: 'fp1',
+        createdAt: 'ts',
+        lastUsedAt: 'ts',
+      },
     ]);
   });
 

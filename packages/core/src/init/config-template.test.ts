@@ -13,6 +13,7 @@ describe('renderConfig', () => {
     expect(content).toContain("migrator: { use: 'prisma' }");
     expect(content).toContain("url: env('DATABASE_URL')");
     expect(content).toContain("key: 'DATABASE_URL'");
+    expect(content).toContain('prune: { autoDropDeleted: true, maxAgeDays: 30, nudge: true }');
     expect(content).toContain("import { defineConfig, env } from 'branchly'");
   });
 });
