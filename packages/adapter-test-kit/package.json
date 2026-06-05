@@ -1,6 +1,6 @@
 {
   "name": "@branchly/adapter-test-kit",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Conformance test suites and fakes for branchly adapters.",
   "license": "MIT",
   "type": "module",
