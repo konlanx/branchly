@@ -67,6 +67,7 @@ export default config(
   },
   {
     files: ['packages/docs/**/*.ts'],
+    extends: [configs.disableTypeChecked],
     settings: {
       'import-x/core-modules': ['astro:content'],
     },
