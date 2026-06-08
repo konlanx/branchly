@@ -1,6 +1,6 @@
 {
   "name": "@branchly/migrator-knex",
-  "version": "0.1.6",
+  "version": "0.1.17",
   "description": "Reference Knex migrator adapter for branchly.",
   "license": "MIT",
   "type": "module",

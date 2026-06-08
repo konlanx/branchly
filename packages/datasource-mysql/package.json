@@ -1,6 +1,6 @@
 {
   "name": "@branchly/datasource-mysql",
-  "version": "0.1.6",
+  "version": "0.1.17",
   "description": "MySQL datasource adapter for branchly (per-branch databases, SQL-level cloning).",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "branchly",
-  "version": "0.1.6",
+  "version": "0.1.17",
   "description": "Keep each VCS branch paired with its own database state.",
   "license": "MIT",
   "type": "module",
