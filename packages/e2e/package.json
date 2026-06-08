@@ -1,6 +1,6 @@
 {
   "name": "@branchly/e2e",
-  "version": "0.1.6",
+  "version": "0.1.17",
   "private": true,
   "type": "module",
   "scripts": {

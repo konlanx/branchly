@@ -1,6 +1,6 @@
 {
   "name": "@branchly/datasource-postgres",
-  "version": "0.1.6",
+  "version": "0.1.17",
   "description": "Reference Postgres datasource adapter for branchly.",
   "license": "MIT",
   "type": "module",
