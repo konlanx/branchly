@@ -58,8 +58,8 @@ const describeHook = (cwd: string, hook: HookResult): string => {
   return `installed at ${where}${doppler} 🪝`;
 };
 
-const installHooks = (cwd: string): Promise<readonly [HookResult, HookResult]> =>
-  Promise.all([installHook(cwd, POST_CHECKOUT_HOOK), installHook(cwd, POST_MERGE_HOOK)]);
+const installHooks = (cwd: string, manager: PackageManager): Promise<readonly [HookResult, HookResult]> =>
+  Promise.all([installHook(cwd, POST_CHECKOUT_HOOK, { manager }), installHook(cwd, POST_MERGE_HOOK, { manager })]);
 
 const writeConfigFile = async (cwd: string, content: string): Promise<boolean> => {
   const path = join(cwd, 'branchly.config.ts');
@@ -117,7 +117,7 @@ export const runInit = async (options: InitOptions): Promise<void> => {
 
   const wroteConfig = await writeConfigFile(cwd, renderConfig({ ...detected, databaseUrlEnv: DATABASE_URL_ENV }));
   await updateGitignore(cwd);
-  const [checkoutHook, mergeHook] = await installHooks(cwd);
+  const [checkoutHook, mergeHook] = await installHooks(cwd, manager);
   reporter.step(`config:    ${wroteConfig ? 'wrote branchly.config.ts 📝' : 'kept your existing branchly.config.ts'}`);
   reporter.step('gitignore: .env is covered (branchly keeps its state in .git)');
   reporter.step(`checkout:  ${describeHook(cwd, checkoutHook)}`);
