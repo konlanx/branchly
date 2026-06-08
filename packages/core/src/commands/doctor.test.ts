@@ -67,6 +67,8 @@ describe('runDoctor', () => {
         cwd: root,
         reporter: createReporter({ quiet: true }),
         load: loadFrom(fakePlugins(false)),
+        env: {},
+        runCommand: () => Promise.resolve(false),
       });
       expect(ok).toBe(true);
     });
@@ -78,6 +80,8 @@ describe('runDoctor', () => {
         cwd: root,
         reporter: createReporter({ quiet: true }),
         load: loadFrom(fakePlugins(true)),
+        env: {},
+        runCommand: () => Promise.resolve(false),
       });
       expect(ok).toBe(false);
     });

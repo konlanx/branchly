@@ -2,6 +2,7 @@ export interface ConfigTemplateInput {
   readonly migrator: string;
   readonly datasource: string;
   readonly resolver: string;
+  readonly resolverFile: string;
   readonly databaseUrlEnv: string;
 }
 
@@ -22,7 +23,7 @@ export default defineConfig({
   vcs: 'git',
   migrator: { use: '${input.migrator}' },
   ${datasourceLine(input)}
-  resolver: { use: '${input.resolver}', file: '.env', key: '${input.databaseUrlEnv}' },
+  resolver: { use: '${input.resolver}', file: '${input.resolverFile}', key: '${input.databaseUrlEnv}' },
   protect: ['main', 'master', 'production'],
   cache: { enabled: true, max: 10, base: 'main' },
   prune: { autoDropDeleted: true, maxAgeDays: 30, nudge: true },

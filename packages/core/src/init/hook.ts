@@ -1,11 +1,15 @@
 import { execFile } from 'node:child_process';
-import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { promisify } from 'node:util';
 
+import type { EnvProvider } from './env-providers';
+import { shellProvider } from './env-providers/shell';
 import { detectPackageManager, hookRunner, type PackageManager } from './package-manager';
 
 const execFileAsync = promisify(execFile);
+
+export type HookWrapper = (command: string) => string;
 
 export interface HookSpec {
   readonly name: string;
@@ -29,12 +33,12 @@ export type HookStatus = 'installed' | 'chained' | 'present';
 export interface HookResult {
   readonly status: HookStatus;
   readonly path: string;
-  readonly doppler: boolean;
+  readonly injector: string;
 }
 
 export interface InstallHookDeps {
   readonly hooksPath?: string | null;
-  readonly doppler?: boolean;
+  readonly injector?: EnvProvider;
   readonly manager?: PackageManager;
 }
 
@@ -45,10 +49,8 @@ export interface HookTarget {
 
 export const hookMarker = (spec: HookSpec): string => `branchly ${spec.subcommand}`;
 
-export const hookCommand = (spec: HookSpec, useDoppler: boolean, manager: PackageManager): string => {
-  const base = `${hookRunner(manager)} ${spec.subcommand} "$@"`;
-  return useDoppler ? `doppler run -- ${base}` : base;
-};
+export const hookCommand = (spec: HookSpec, wrap: HookWrapper, manager: PackageManager): string =>
+  wrap(`${hookRunner(manager)} ${spec.subcommand} "$@"`);
 
 export const hookTarget = (repoRoot: string, hooksPath: string | null, hookName: string): HookTarget => {
   if (hooksPath === null || hooksPath.length === 0) {
@@ -84,16 +86,6 @@ const readHooksPath = async (cwd: string): Promise<string | null> => {
   return value.length === 0 ? null : value;
 };
 
-const fileExists = (path: string): Promise<boolean> =>
-  access(path)
-    .then(() => true)
-    .catch(() => false);
-
-const detectDoppler = async (cwd: string): Promise<boolean> => {
-  const checks = await Promise.all(['doppler.yaml', '.doppler.yaml'].map((name) => fileExists(join(cwd, name))));
-  return checks.some((found) => found);
-};
-
 const readExisting = (path: string): Promise<string | null> =>
   readFile(path, 'utf8').then(
     (content) => content,
@@ -102,23 +94,23 @@ const readExisting = (path: string): Promise<string | null> =>
 
 export const installHook = async (cwd: string, spec: HookSpec, deps: InstallHookDeps = {}): Promise<HookResult> => {
   const hooksPath = 'hooksPath' in deps ? (deps.hooksPath ?? null) : await readHooksPath(cwd);
-  const useDoppler = 'doppler' in deps ? deps.doppler === true : await detectDoppler(cwd);
+  const injector = deps.injector ?? shellProvider;
   const manager = deps.manager ?? (await detectPackageManager(cwd));
-  const command = hookCommand(spec, useDoppler, manager);
+  const command = hookCommand(spec, injector.wrapHookCommand, manager);
   const target = hookTarget(cwd, hooksPath, spec.name);
   const existing = await readExisting(target.path);
 
   if (existing !== null && hasBranchlyHook(existing, spec)) {
-    return { status: 'present', path: target.path, doppler: useDoppler };
+    return { status: 'present', path: target.path, injector: injector.id };
   }
   if (existing !== null) {
     await writeFile(target.path, appendHookLine(existing, command), 'utf8');
-    return { status: 'chained', path: target.path, doppler: useDoppler };
+    return { status: 'chained', path: target.path, injector: injector.id };
   }
   await mkdir(dirname(target.path), { recursive: true });
   await writeFile(target.path, renderHookFile(command, target.managed, spec.guard), 'utf8');
   if (!target.managed) {
     await chmod(target.path, 0o755);
   }
-  return { status: 'installed', path: target.path, doppler: useDoppler };
+  return { status: 'installed', path: target.path, injector: injector.id };
 };
