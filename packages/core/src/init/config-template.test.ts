@@ -8,6 +8,7 @@ describe('renderConfig', () => {
       migrator: 'prisma',
       datasource: 'postgres',
       resolver: 'env-file',
+      resolverFile: '.env',
       databaseUrlEnv: 'DATABASE_URL',
     });
     expect(content).toContain("migrator: { use: 'prisma' }");
@@ -22,6 +23,7 @@ describe('renderConfig', () => {
       migrator: 'prisma',
       datasource: 'mysql',
       resolver: 'env-file',
+      resolverFile: '.env',
       databaseUrlEnv: 'DATABASE_URL',
     });
     expect(content).toContain("datasource: { use: 'mysql', url: env('DATABASE_URL'), prefix: 'app' }");
@@ -32,10 +34,22 @@ describe('renderConfig', () => {
       migrator: 'drizzle',
       datasource: 'sqlite',
       resolver: 'env-file',
+      resolverFile: '.env',
       databaseUrlEnv: 'DATABASE_URL',
     });
     expect(content).toContain("datasource: { use: 'sqlite' }");
     expect(content).not.toContain('env(');
     expect(content).toContain("import { defineConfig } from 'branchly'");
+  });
+
+  it('renders a direnv resolver writing to .envrc', () => {
+    const content = renderConfig({
+      migrator: 'prisma',
+      datasource: 'postgres',
+      resolver: 'direnv',
+      resolverFile: '.envrc',
+      databaseUrlEnv: 'DATABASE_URL',
+    });
+    expect(content).toContain("resolver: { use: 'direnv', file: '.envrc', key: 'DATABASE_URL' }");
   });
 });

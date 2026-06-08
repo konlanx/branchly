@@ -48,7 +48,18 @@ const dispatch = (
   cwd: string,
 ): Promise<void> => {
   if (command === 'init') {
-    return runInit({ cwd, reporter, install: !args.includes('--no-install') });
+    const envFlag = args.find((arg) => arg.startsWith('--env='));
+    return runInit({
+      cwd,
+      reporter,
+      install: !args.includes('--no-install'),
+      interactive: !args.includes('--yes') && !args.includes('-y'),
+      envProvider: envFlag === undefined ? null : envFlag.slice('--env='.length),
+    }).then((ok) => {
+      if (!ok) {
+        process.exitCode = 1;
+      }
+    });
   }
   if (command === 'sync') {
     return runSync({ cwd, reporter });
