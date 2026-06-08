@@ -14,6 +14,13 @@ const LOCKFILES: { readonly file: string; readonly manager: PackageManager }[] =
 const SUBCOMMAND: Record<PackageManager, string> = { npm: 'install', pnpm: 'add', yarn: 'add', bun: 'add' };
 const DEV_FLAG: Record<PackageManager, string> = { npm: '--save-dev', pnpm: '--save-dev', yarn: '--dev', bun: '--dev' };
 
+const HOOK_RUNNER: Record<PackageManager, string> = {
+  npm: 'npx branchly',
+  pnpm: 'pnpm exec branchly',
+  yarn: 'yarn branchly',
+  bun: 'bunx branchly',
+};
+
 const fileExists = (path: string): Promise<boolean> =>
   access(path)
     .then(() => true)
@@ -57,6 +64,8 @@ export const detectPackageManager = async (
   }, Promise.resolve(null));
   return fromLockfile ?? fromUserAgent(userAgent) ?? 'npm';
 };
+
+export const hookRunner = (manager: PackageManager): string => HOOK_RUNNER[manager];
 
 export const installArgs = (manager: PackageManager, packages: readonly string[]): string[] => [
   SUBCOMMAND[manager],

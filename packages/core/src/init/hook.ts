@@ -3,6 +3,8 @@ import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { promisify } from 'node:util';
 
+import { detectPackageManager, hookRunner, type PackageManager } from './package-manager';
+
 const execFileAsync = promisify(execFile);
 
 export interface HookSpec {
@@ -33,6 +35,7 @@ export interface HookResult {
 export interface InstallHookDeps {
   readonly hooksPath?: string | null;
   readonly doppler?: boolean;
+  readonly manager?: PackageManager;
 }
 
 export interface HookTarget {
@@ -42,8 +45,8 @@ export interface HookTarget {
 
 export const hookMarker = (spec: HookSpec): string => `branchly ${spec.subcommand}`;
 
-export const hookCommand = (spec: HookSpec, useDoppler: boolean): string => {
-  const base = `npx branchly ${spec.subcommand} "$@"`;
+export const hookCommand = (spec: HookSpec, useDoppler: boolean, manager: PackageManager): string => {
+  const base = `${hookRunner(manager)} ${spec.subcommand} "$@"`;
   return useDoppler ? `doppler run -- ${base}` : base;
 };
 
@@ -100,7 +103,8 @@ const readExisting = (path: string): Promise<string | null> =>
 export const installHook = async (cwd: string, spec: HookSpec, deps: InstallHookDeps = {}): Promise<HookResult> => {
   const hooksPath = 'hooksPath' in deps ? (deps.hooksPath ?? null) : await readHooksPath(cwd);
   const useDoppler = 'doppler' in deps ? deps.doppler === true : await detectDoppler(cwd);
-  const command = hookCommand(spec, useDoppler);
+  const manager = deps.manager ?? (await detectPackageManager(cwd));
+  const command = hookCommand(spec, useDoppler, manager);
   const target = hookTarget(cwd, hooksPath, spec.name);
   const existing = await readExisting(target.path);
 
