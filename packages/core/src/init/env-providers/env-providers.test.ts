@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { direnvProvider } from './direnv';
-import { dopplerProvider } from './doppler';
 import { envFileProvider } from './env-file';
 import { detectEnvProviders, providerById } from './index';
 import { shellProvider } from './shell';
@@ -60,37 +59,6 @@ describe('envFileProvider', () => {
   });
 });
 
-describe('dopplerProvider', () => {
-  it('detects from a doppler.yaml file without running anything', async () => {
-    await withDir(async (root) => {
-      await writeFile(join(root, 'doppler.yaml'), 'setup:\n', 'utf8');
-      expect(await dopplerProvider.detect(contextFor(root, {}, never))).toBe(true);
-    });
-  });
-
-  it('detects from a configured project when no file is present', async () => {
-    await withDir(async (root) => {
-      expect(await dopplerProvider.detect(contextFor(root, {}, always))).toBe(true);
-      expect(await dopplerProvider.detect(contextFor(root, {}, never))).toBe(false);
-    });
-  });
-
-  it('wraps the hook with doppler run and verifies via the runner', async () => {
-    await withDir(async (root) => {
-      const seen: string[][] = [];
-      const runner: CommandRunner = (command, args) => {
-        seen.push([command, ...args]);
-        return Promise.resolve(true);
-      };
-      expect(dopplerProvider.wrapHookCommand('npx branchly on-checkout')).toBe(
-        'doppler run -- npx branchly on-checkout',
-      );
-      expect(await dopplerProvider.verifyResolves(contextFor(root, {}, runner))).toBe(true);
-      expect(seen[0]?.slice(0, 3)).toEqual(['doppler', 'run', '--']);
-    });
-  });
-});
-
 describe('direnvProvider', () => {
   it('detects only when both .envrc and the direnv binary are present', async () => {
     await withDir(async (root) => {
@@ -101,8 +69,17 @@ describe('direnvProvider', () => {
     });
   });
 
-  it('wraps the hook with direnv exec', () => {
-    expect(direnvProvider.wrapHookCommand('npx branchly on-checkout')).toBe('direnv exec . npx branchly on-checkout');
+  it('wraps the hook with direnv exec and verifies via the runner', async () => {
+    await withDir(async (root) => {
+      const seen: string[][] = [];
+      const runner: CommandRunner = (command, args) => {
+        seen.push([command, ...args]);
+        return Promise.resolve(true);
+      };
+      expect(direnvProvider.wrapHookCommand('npx branchly on-checkout')).toBe('direnv exec . npx branchly on-checkout');
+      expect(await direnvProvider.verifyResolves(contextFor(root, {}, runner))).toBe(true);
+      expect(seen[0]?.slice(0, 2)).toEqual(['direnv', 'exec']);
+    });
   });
 });
 
@@ -112,7 +89,7 @@ describe('detectEnvProviders / providerById', () => {
       await writeFile(join(root, '.env'), 'DATABASE_URL=x\n', 'utf8');
       const detected = await detectEnvProviders(contextFor(root, { DATABASE_URL: 'x' }, never));
       expect(detected.map((provider) => provider.id)).toEqual(['env-file', 'shell']);
-      expect(providerById('doppler')).toBe(dopplerProvider);
+      expect(providerById('direnv')).toBe(direnvProvider);
       expect(providerById('nope')).toBeNull();
     });
   });

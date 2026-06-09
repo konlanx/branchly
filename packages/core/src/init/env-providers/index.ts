@@ -1,10 +1,9 @@
 import { direnvProvider } from './direnv';
-import { dopplerProvider } from './doppler';
 import { envFileProvider } from './env-file';
 import { shellProvider } from './shell';
 import type { EnvProvider, EnvProviderContext } from './types';
 
-export const ENV_PROVIDERS: readonly EnvProvider[] = [dopplerProvider, direnvProvider, envFileProvider, shellProvider];
+export const ENV_PROVIDERS: readonly EnvProvider[] = [direnvProvider, envFileProvider, shellProvider];
 
 export const FALLBACK_PROVIDER: EnvProvider = envFileProvider;
 
