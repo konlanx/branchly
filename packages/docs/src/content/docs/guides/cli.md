@@ -31,7 +31,7 @@ Tells you where you are: current branch, the key it maps to, whether the databas
 
 ## `branchly run -- <cmd>`
 
-For setups where the environment is injected rather than read from a file (direnv, CI): provisions the current branch, then launches `<cmd>` with the per-branch connection set in its environment — set last, so it wins over injected values. See [injected environments](/branchly/guides/injected-envs/).
+For setups where the environment is injected rather than read from a file (Doppler, CI): provisions the current branch, then launches `<cmd>` with the per-branch connection set in its environment — set last, so it wins over injected values. See [injected environments](/branchly/guides/injected-envs/).
 
 ## `branchly prune`
 

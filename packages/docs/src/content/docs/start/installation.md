@@ -28,7 +28,7 @@ That single command:
 
 ## Connection detection
 
-branchly never needs a new credential. It finds your existing connection — a `.env` file, direnv, CI secrets, or your Prisma datasource — keeps the host and credentials, and just swaps the database name: a maintenance connection for creating and cloning databases, and a fresh `app_<branch>` database per branch.
+branchly never needs a new credential. It finds your existing connection — a `.env` file, Doppler, direnv, CI secrets, or your Prisma datasource — keeps the host and credentials, and just swaps the database name: a maintenance connection for creating and cloning databases, and a fresh `app_<branch>` database per branch.
 
 ## Requirements
 
