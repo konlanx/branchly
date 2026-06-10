@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { direnvProvider } from './env-providers/direnv';
+import { dopplerProvider } from './env-providers/doppler';
 import { shellProvider } from './env-providers/shell';
 import {
   appendHookLine,
@@ -24,9 +24,9 @@ describe('hookCommand', () => {
     expect(hookCommand(POST_CHECKOUT_HOOK, identity, 'npm')).toBe('npx branchly on-checkout "$@"');
   });
 
-  it('wraps the command with the direnv injector', () => {
-    expect(hookCommand(POST_CHECKOUT_HOOK, direnvProvider.wrapHookCommand, 'npm')).toBe(
-      'direnv exec . npx branchly on-checkout "$@"',
+  it('wraps the command with the doppler injector', () => {
+    expect(hookCommand(POST_CHECKOUT_HOOK, dopplerProvider.wrapHookCommand, 'npm')).toBe(
+      'doppler run -- npx branchly on-checkout "$@"',
     );
   });
 
@@ -146,16 +146,16 @@ describe('installHook', () => {
     }
   });
 
-  it('wraps the hook with the direnv injector', async () => {
+  it('wraps the hook with the doppler injector', async () => {
     const root = await mkdtemp(join(tmpdir(), 'branchly-hook-'));
     try {
       const result = await installHook(root, POST_CHECKOUT_HOOK, {
         hooksPath: null,
-        injector: direnvProvider,
+        injector: dopplerProvider,
         manager: 'npm',
       });
-      expect(result.injector).toBe('direnv');
-      expect(await readFile(result.path, 'utf8')).toContain('direnv exec . npx branchly on-checkout');
+      expect(result.injector).toBe('doppler');
+      expect(await readFile(result.path, 'utf8')).toContain('doppler run -- npx branchly on-checkout');
     } finally {
       await rm(root, { recursive: true, force: true });
     }

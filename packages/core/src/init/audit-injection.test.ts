@@ -33,17 +33,17 @@ const withDir = async (action: (root: string) => Promise<void>): Promise<void> =
 describe('auditInjection', () => {
   it('flags a detected injector whose wrapper is missing from the hook', async () => {
     await withDir(async (root) => {
-      await writeFile(join(root, '.envrc'), 'export DATABASE_URL=x\n', 'utf8');
+      await writeFile(join(root, 'doppler.yaml'), 'setup:\n', 'utf8');
       await writeHook(root, 'exec npx branchly on-checkout "$@"\n');
       const unwrapped = unwrappedInjectors(await auditInjection(contextFor(root, () => Promise.resolve(true))));
-      expect(unwrapped.map((finding) => finding.provider.id)).toEqual(['direnv']);
+      expect(unwrapped.map((finding) => finding.provider.id)).toEqual(['doppler']);
     });
   });
 
   it('does not flag when the hook already carries the wrapper', async () => {
     await withDir(async (root) => {
-      await writeFile(join(root, '.envrc'), 'export DATABASE_URL=x\n', 'utf8');
-      await writeHook(root, 'exec direnv exec . npx branchly on-checkout "$@"\n');
+      await writeFile(join(root, 'doppler.yaml'), 'setup:\n', 'utf8');
+      await writeHook(root, 'exec doppler run -- npx branchly on-checkout "$@"\n');
       const unwrapped = unwrappedInjectors(await auditInjection(contextFor(root, () => Promise.resolve(true))));
       expect(unwrapped).toHaveLength(0);
     });
@@ -51,9 +51,10 @@ describe('auditInjection', () => {
 
   it('does not flag an injector that cannot resolve the key', async () => {
     await withDir(async (root) => {
-      await writeFile(join(root, '.envrc'), 'export DATABASE_URL=x\n', 'utf8');
+      await writeFile(join(root, 'doppler.yaml'), 'setup:\n', 'utf8');
       await writeHook(root, 'exec npx branchly on-checkout "$@"\n');
-      const runner: CommandRunner = (command, args) => Promise.resolve(command === 'direnv' && args[0] === 'version');
+      const runner: CommandRunner = (command, args) =>
+        Promise.resolve(command === 'doppler' && args[0] === 'configure');
       const unwrapped = unwrappedInjectors(await auditInjection(contextFor(root, runner)));
       expect(unwrapped).toHaveLength(0);
     });

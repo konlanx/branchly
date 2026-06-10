@@ -34,7 +34,7 @@ Any other keys in an adapter's block are passed through to that adapter as optio
 
 ## `env()` references
 
-`env('DATABASE_URL')` defers a value to the environment at load time, so your config can be committed without committing a connection string. branchly also auto-loads `.env` (non-overriding, so direnv and CI-injected values win).
+`env('DATABASE_URL')` defers a value to the environment at load time, so your config can be committed without committing a connection string. branchly also auto-loads `.env` (non-overriding, so Doppler, direnv, and CI-injected values win).
 
 For the datasource `url`, branchly derives its maintenance connection from your app's existing connection string by swapping the database name — there is no separate admin variable to set.
 

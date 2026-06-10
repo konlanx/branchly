@@ -26,4 +26,4 @@ The write is an **upsert**: an existing `DATABASE_URL=` line is replaced in plac
 
 `branchly init` makes sure the file is gitignored — the value changes per branch and per machine, so it should never be committed.
 
-Using direnv or CI-injected environments where a file write would be overridden at launch? Pair this with [`branchly run`](/branchly/guides/injected-envs/), or use the [direnv resolver](/branchly/adapters/direnv/).
+Using Doppler or CI-injected environments where a file write would be overridden at launch? Pair this with [`branchly run`](/branchly/guides/injected-envs/), or use the [direnv resolver](/branchly/adapters/direnv/).

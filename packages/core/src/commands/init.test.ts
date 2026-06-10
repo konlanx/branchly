@@ -123,12 +123,12 @@ describe('runInit', () => {
         reporter: createReporter({ quiet: true }),
         installer,
         env: {},
-        envProvider: 'direnv',
+        envProvider: 'doppler',
         runCommand: () => Promise.resolve(true),
       });
       expect(ok).toBe(true);
       const hook = await readFile(join(root, '.git', 'hooks', 'post-checkout'), 'utf8');
-      expect(hook).toContain('direnv exec . ');
+      expect(hook).toContain('doppler run -- ');
       expect(hook).toContain('branchly on-checkout');
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -150,7 +150,7 @@ describe('runInit', () => {
       expect(ok).toBe(false);
       const hook = await readFile(join(root, '.git', 'hooks', 'post-checkout'), 'utf8');
       expect(hook).toContain('branchly on-checkout');
-      expect(hook).not.toContain('direnv exec');
+      expect(hook).not.toContain('doppler run');
     } finally {
       await rm(root, { recursive: true, force: true });
     }
