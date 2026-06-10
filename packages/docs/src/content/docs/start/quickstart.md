@@ -23,7 +23,7 @@ branchly init
 ◇ gitignore: .env is covered (branchly keeps its state in .git)
 ◇ checkout:  installed at .husky/post-checkout 🪝
 ◇ merge:     installed at .husky/post-merge 🪝
-◇ next:      nothing! branchly reuses your existing DATABASE_URL (.env, Doppler, etc.) 🌱
+◇ next:      nothing! branchly reuses your existing DATABASE_URL (.env, direnv, etc.) 🌱
 │
 └ branchly is set up — happy branching! 🎉
 ```
